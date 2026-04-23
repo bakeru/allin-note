@@ -1,3 +1,7 @@
+import Link from "next/link";
+
+import { buttonVariants } from "@/components/ui/button";
+
 export default function Home() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-neutral-950 px-6 text-white">
@@ -11,6 +15,16 @@ export default function Home() {
         <p className="mt-6 text-lg leading-8 text-white/70 sm:text-xl">
           AIが書いてくれる、教室のカルテと連絡ノート
         </p>
+        <Link
+          href="/record"
+          className={buttonVariants({
+            size: "lg",
+            className:
+              "mt-10 bg-white px-6 text-neutral-950 hover:bg-white/90",
+          })}
+        >
+          録音画面へ
+        </Link>
       </section>
     </main>
   );
