@@ -23,6 +23,22 @@ npm run dev
 - Cloudflare R2 (音声ストレージ)
 - OpenAI (Whisper + GPT-4o)
 
+## DBマイグレーション
+
+Supabaseダッシュボードで実行する場合:
+
+1. Supabaseダッシュボード → SQL Editor
+2. New query
+3. `supabase/migrations/20260424000000_initial_schema.sql` の中身をコピペ
+4. Run
+5. 次に `supabase/seed.sql` の中身をコピペして Run
+
+注意:
+
+- RLSポリシーはフェーズ1のモック認証では効かないため、開発中はRLSバイパスのservice_roleキーを使う
+- `seed.sql` の `auth.users` への直接INSERTは本番環境では行わない
+- マイグレーションファイルは作成のみで、実行は手動で行う
+
 ## ステータス
 
 β版開発中(フェーズ1:自分用MVP)
