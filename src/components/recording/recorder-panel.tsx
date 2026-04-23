@@ -1,6 +1,6 @@
 "use client";
 
-import { Pause, Play, RotateCcw, Square, Mic } from "lucide-react";
+import { Loader2, Mic, Pause, Play, RotateCcw, Square } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -30,8 +30,20 @@ const getStatusText = (state: RecorderState, hasRecording: boolean) => {
   return "待機中";
 };
 
+type UploadState = "idle" | "uploading" | "success" | "error";
+
+type UploadResponse = {
+  lesson_id?: string;
+  error?: string;
+};
+
+const DEV_STUDENT_ID = process.env.NEXT_PUBLIC_DEV_STUDENT_ID;
+
 export function RecorderPanel() {
   const [recording, setRecording] = useState<RecordingResult | null>(null);
+  const [uploadState, setUploadState] = useState<UploadState>("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [lessonId, setLessonId] = useState<string | null>(null);
   const { start, stop, pause, resume, state, duration, error } = useRecorder({
     onRecordingComplete: setRecording,
   });
@@ -49,7 +61,56 @@ export function RecorderPanel() {
       URL.revokeObjectURL(recording.url);
     }
     setRecording(null);
+    setUploadState("idle");
+    setUploadError(null);
+    setLessonId(null);
   }, [recording]);
+
+  const uploadRecording = useCallback(async (nextRecording: RecordingResult) => {
+    if (!DEV_STUDENT_ID) {
+      setUploadState("error");
+      setUploadError(".env.localにNEXT_PUBLIC_DEV_STUDENT_IDを設定してください。");
+      return;
+    }
+
+    setUploadState("uploading");
+    setUploadError(null);
+    setLessonId(null);
+
+    try {
+      const formData = new FormData();
+      formData.append(
+        "audio",
+        nextRecording.blob,
+        `recording.${nextRecording.mimeType.includes("mp4") ? "m4a" : "webm"}`
+      );
+      formData.append("student_id", DEV_STUDENT_ID);
+      formData.append(
+        "duration_seconds",
+        Math.round(nextRecording.duration).toString()
+      );
+
+      const response = await fetch("/api/lessons/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const body = (await response.json()) as UploadResponse;
+
+      if (!response.ok || !body.lesson_id) {
+        throw new Error(body.error ?? "アップロードに失敗しました。");
+      }
+
+      setLessonId(body.lesson_id);
+      setUploadState("success");
+    } catch (unknownError) {
+      setUploadState("error");
+      setUploadError(
+        unknownError instanceof Error
+          ? unknownError.message
+          : "アップロードに失敗しました。"
+      );
+    }
+  }, []);
 
   const handleStart = async () => {
     resetRecording();
@@ -60,9 +121,17 @@ export function RecorderPanel() {
     await stop();
   };
 
+  useEffect(() => {
+    if (!recording || uploadState !== "idle") return;
+
+    void uploadRecording(recording);
+  }, [recording, uploadRecording, uploadState]);
+
   const isRecording = state === "recording";
   const isPaused = state === "paused";
   const isBusy = state === "stopping";
+  const isUploading = uploadState === "uploading";
+  const canReset = !isUploading && uploadState === "success";
   const activeDuration = recording?.duration ?? duration;
 
   return (
@@ -153,6 +222,7 @@ export function RecorderPanel() {
               type="button"
               variant="outline"
               size="sm"
+              disabled={!canReset}
               onClick={resetRecording}
             >
               <RotateCcw data-icon="inline-start" />
@@ -162,6 +232,38 @@ export function RecorderPanel() {
           <audio className="w-full" controls src={recording.url}>
             <track kind="captions" />
           </audio>
+
+          <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm">
+            {uploadState === "uploading" && (
+              <p className="flex items-center gap-2 text-neutral-700">
+                <Loader2 className="size-4 animate-spin" />
+                アップロード中...
+              </p>
+            )}
+
+            {uploadState === "success" && lessonId && (
+              <p className="text-emerald-700">
+                アップロード完了! レッスンID:{" "}
+                <span className="font-mono">{lessonId}</span>
+              </p>
+            )}
+
+            {uploadState === "error" && (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-red-700">
+                  {uploadError ?? "アップロードに失敗しました。"}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void uploadRecording(recording)}
+                >
+                  リトライ
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </section>

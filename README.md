@@ -39,6 +39,73 @@ Supabaseダッシュボードで実行する場合:
 - `seed.sql` の `auth.users` への直接INSERTは本番環境では行わない
 - マイグレーションファイルは作成のみで、実行は手動で行う
 
+## 録音アップロード確認
+
+開発用の生徒レコードをSupabaseのSQL Editorで作成します。
+`[YOUR_MOCK_USER_ID]` は `.env.local` の `MOCK_USER_ID` に置き換えてください。
+
+```sql
+INSERT INTO auth.users (
+  id,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  created_at,
+  updated_at,
+  aud,
+  role
+) VALUES (
+  '00000000-0000-0000-0000-000000000002',
+  'dev-student@example.com',
+  '',
+  NOW(),
+  NOW(),
+  NOW(),
+  'authenticated',
+  'authenticated'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO profiles (id, email, role, display_name)
+VALUES (
+  '00000000-0000-0000-0000-000000000002',
+  'dev-student@example.com',
+  'student',
+  '開発用生徒'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO students (user_id, teacher_id, start_date, status, notes)
+VALUES (
+  '00000000-0000-0000-0000-000000000002',
+  '[YOUR_MOCK_USER_ID]',
+  CURRENT_DATE,
+  'active',
+  '開発用のテスト生徒'
+) ON CONFLICT (user_id) DO NOTHING;
+```
+
+`.env.local` に設定します:
+
+```sh
+NEXT_PUBLIC_DEV_STUDENT_ID=00000000-0000-0000-0000-000000000002
+```
+
+動作確認:
+
+1. `.env.local` に `NEXT_PUBLIC_DEV_STUDENT_ID` を設定
+2. `npm run dev` で起動
+3. `/record` にアクセス
+4. 録音開始→停止
+5. 自動でアップロード開始
+6. 成功メッセージを確認
+7. Supabaseの Table Editor で `lessons` テーブルにレコードが追加されたことを確認
+8. Cloudflare R2の `allin-note-audio` バケットにファイルが追加されたことを確認
+
+注意:
+
+- 開発中はRLSバイパスの `SUPABASE_SECRET_KEY` を使って `lessons` に保存する
+- 90分録音は40MB前後になる想定のため、デプロイ先のリクエストサイズ制限を確認する
+- R2アップロード後の文字起こし・要約・DBステータス更新は別タスクで実装する
+
 ## ステータス
 
 β版開発中(フェーズ1:自分用MVP)
