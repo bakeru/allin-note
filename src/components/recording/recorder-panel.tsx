@@ -37,6 +37,14 @@ type UploadResponse = {
   error?: string;
 };
 
+type TranscriptionState = "idle" | "transcribing" | "success" | "error";
+
+type TranscriptionResponse = {
+  success?: boolean;
+  transcript?: string;
+  error?: string;
+};
+
 const DEV_STUDENT_ID = process.env.NEXT_PUBLIC_DEV_STUDENT_ID;
 
 export function RecorderPanel() {
@@ -44,6 +52,12 @@ export function RecorderPanel() {
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [lessonId, setLessonId] = useState<string | null>(null);
+  const [transcriptionState, setTranscriptionState] =
+    useState<TranscriptionState>("idle");
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(
+    null
+  );
+  const [transcript, setTranscript] = useState<string | null>(null);
   const { start, stop, pause, resume, state, duration, error } = useRecorder({
     onRecordingComplete: setRecording,
   });
@@ -64,6 +78,9 @@ export function RecorderPanel() {
     setUploadState("idle");
     setUploadError(null);
     setLessonId(null);
+    setTranscriptionState("idle");
+    setTranscriptionError(null);
+    setTranscript(null);
   }, [recording]);
 
   const uploadRecording = useCallback(async (nextRecording: RecordingResult) => {
@@ -112,6 +129,36 @@ export function RecorderPanel() {
     }
   }, []);
 
+  const transcribeLesson = useCallback(async (nextLessonId: string) => {
+    setTranscriptionState("transcribing");
+    setTranscriptionError(null);
+    setTranscript(null);
+
+    try {
+      const response = await fetch(
+        `/api/lessons/${nextLessonId}/transcribe`,
+        {
+          method: "POST",
+        }
+      );
+      const body = (await response.json()) as TranscriptionResponse;
+
+      if (!response.ok || !body.transcript) {
+        throw new Error(body.error ?? "文字起こしに失敗しました。");
+      }
+
+      setTranscript(body.transcript);
+      setTranscriptionState("success");
+    } catch (unknownError) {
+      setTranscriptionState("error");
+      setTranscriptionError(
+        unknownError instanceof Error
+          ? unknownError.message
+          : "文字起こしに失敗しました。"
+      );
+    }
+  }, []);
+
   const handleStart = async () => {
     resetRecording();
     await start();
@@ -127,11 +174,23 @@ export function RecorderPanel() {
     void uploadRecording(recording);
   }, [recording, uploadRecording, uploadState]);
 
+  useEffect(() => {
+    if (!lessonId || uploadState !== "success") return;
+    if (transcriptionState !== "idle") return;
+
+    void transcribeLesson(lessonId);
+  }, [lessonId, transcribeLesson, transcriptionState, uploadState]);
+
   const isRecording = state === "recording";
   const isPaused = state === "paused";
   const isBusy = state === "stopping";
   const isUploading = uploadState === "uploading";
-  const canReset = !isUploading && uploadState === "success";
+  const isTranscribing = transcriptionState === "transcribing";
+  const canReset =
+    !isUploading &&
+    !isTranscribing &&
+    uploadState === "success" &&
+    transcriptionState === "success";
   const activeDuration = recording?.duration ?? duration;
 
   return (
@@ -264,6 +323,46 @@ export function RecorderPanel() {
               </div>
             )}
           </div>
+
+          {lessonId && uploadState === "success" && (
+            <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm">
+              {transcriptionState === "transcribing" && (
+                <p className="flex items-center gap-2 text-neutral-700">
+                  <Loader2 className="size-4 animate-spin" />
+                  文字起こし中...
+                </p>
+              )}
+
+              {transcriptionState === "success" && transcript && (
+                <div className="space-y-3">
+                  <p className="font-medium text-emerald-700">
+                    文字起こし完了!
+                  </p>
+                  <textarea
+                    readOnly
+                    value={transcript}
+                    className="h-48 w-full resize-y rounded-md border border-neutral-200 bg-white p-3 text-sm leading-6 text-neutral-800 outline-none"
+                  />
+                </div>
+              )}
+
+              {transcriptionState === "error" && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-red-700">
+                    {transcriptionError ?? "文字起こしに失敗しました。"}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void transcribeLesson(lessonId)}
+                  >
+                    リトライ
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </section>

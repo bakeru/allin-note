@@ -5,6 +5,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { Readable } from "node:stream";
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
@@ -69,6 +70,46 @@ export async function getSignedAudioUrl(
     }),
     { expiresIn: expiresInSeconds }
   );
+}
+
+export async function downloadAudio(key: string): Promise<Buffer> {
+  assertR2Config();
+
+  const response = await s3Client.send(
+    new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+    })
+  );
+
+  if (!response.Body) {
+    throw new Error("R2から音声ファイルを取得できませんでした。");
+  }
+
+  if (response.Body instanceof Readable) {
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of response.Body) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    return Buffer.concat(chunks);
+  }
+
+  if (response.Body instanceof ReadableStream) {
+    const chunks: Uint8Array[] = [];
+    const reader = response.Body.getReader();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+
+    return Buffer.concat(chunks);
+  }
+
+  throw new Error("R2の音声ファイル形式を読み取れませんでした。");
 }
 
 export async function deleteAudio(key: string) {
