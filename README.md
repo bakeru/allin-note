@@ -31,13 +31,27 @@ Supabaseダッシュボードで実行する場合:
 2. New query
 3. `supabase/migrations/20260424000000_initial_schema.sql` の中身をコピペ
 4. Run
-5. 次に `supabase/seed.sql` の中身をコピペして Run
+5. 次に `supabase/migrations/20260424120000_add_reservations.sql` の中身をコピペ
+6. Run
+7. 最後に `supabase/seed.sql` の中身をコピペして Run
 
 注意:
 
 - RLSポリシーはフェーズ1のモック認証では効かないため、開発中はRLSバイパスのservice_roleキーを使う
 - `seed.sql` の `auth.users` への直接INSERTは本番環境では行わない
 - マイグレーションファイルは作成のみで、実行は手動で行う
+
+## 予約機能の動作確認
+
+1. Supabase SQL Editor で `supabase/migrations/20260424120000_add_reservations.sql` を実行
+2. `npm run dev` を再起動
+3. `/reservations` にアクセス
+4. 「新しい予約を追加」から、生徒・日時・所要時間を設定して保存
+5. `/record` にアクセス
+6. 予約時刻の前後に入っていれば、自動で該当生徒の録音画面が表示される
+7. 録音してアップロードまで進める
+8. Supabaseの `reservations` テーブルで `status` が `completed` になっていることを確認
+9. `lessons` テーブルで `reservation_id` が入っていることを確認
 
 ## 録音アップロード確認
 

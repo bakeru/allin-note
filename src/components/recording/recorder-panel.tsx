@@ -100,7 +100,17 @@ function SummarySection({
   );
 }
 
-export function RecorderPanel() {
+type RecorderPanelProps = {
+  studentId?: string;
+  studentName?: string;
+  reservationId?: string | null;
+};
+
+export function RecorderPanel({
+  studentId,
+  studentName,
+  reservationId,
+}: RecorderPanelProps = {}) {
   const [recording, setRecording] = useState<RecordingResult | null>(null);
   const [stage, setStage] = useState<ProcessingStage>("idle");
   const [processingError, setProcessingError] = useState<string | null>(null);
@@ -139,7 +149,9 @@ export function RecorderPanel() {
   }, [recording]);
 
   const uploadRecording = useCallback(async (nextRecording: RecordingResult) => {
-    if (!DEV_STUDENT_ID) {
+    const activeStudentId = studentId ?? DEV_STUDENT_ID;
+
+    if (!activeStudentId) {
       setStage("error");
       setProcessingError(".env.localにNEXT_PUBLIC_DEV_STUDENT_IDを設定してください。");
       return null;
@@ -154,11 +166,14 @@ export function RecorderPanel() {
       nextRecording.blob,
       `recording.${nextRecording.mimeType.includes("mp4") ? "m4a" : "webm"}`
     );
-    formData.append("student_id", DEV_STUDENT_ID);
+    formData.append("student_id", activeStudentId);
     formData.append(
       "duration_seconds",
       Math.round(nextRecording.duration).toString()
     );
+    if (reservationId) {
+      formData.append("reservation_id", reservationId);
+    }
 
     const response = await fetch("/api/lessons/upload", {
       method: "POST",
@@ -173,7 +188,7 @@ export function RecorderPanel() {
     setLessonId(body.lesson_id);
     setStage("uploaded");
     return body.lesson_id;
-  }, []);
+  }, [reservationId, studentId]);
 
   const transcribeLesson = useCallback(async (nextLessonId: string) => {
     setStage("transcribing");
@@ -238,13 +253,18 @@ export function RecorderPanel() {
     if (!recording) return;
 
     try {
-      if (!lessonId || stage === "uploading") {
+      if (!lessonId) {
         await runPipeline(recording);
         return;
       }
 
-      if (stage === "transcribing") {
+      if (!transcript) {
         await transcribeLesson(lessonId);
+        await summarizeLesson(lessonId);
+        return;
+      }
+
+      if (!studentSummary || !teacherSummary) {
         await summarizeLesson(lessonId);
         return;
       }
@@ -258,7 +278,16 @@ export function RecorderPanel() {
           : "リトライに失敗しました。"
       );
     }
-  }, [lessonId, recording, runPipeline, stage, summarizeLesson, transcribeLesson]);
+  }, [
+    lessonId,
+    recording,
+    runPipeline,
+    studentSummary,
+    summarizeLesson,
+    teacherSummary,
+    transcript,
+    transcribeLesson,
+  ]);
 
   const handleStart = async () => {
     resetRecording();
@@ -284,6 +313,14 @@ export function RecorderPanel() {
 
   return (
     <section className="mx-auto flex w-full max-w-4xl flex-col items-center px-5 py-10 text-center">
+      {studentName ? (
+        <p className="mb-4 text-sm font-medium text-neutral-600">
+          {state === "recording" || state === "paused"
+            ? `${studentName}さんのレッスン録音中`
+            : `${studentName}さんのレッスンを録音します`}
+        </p>
+      ) : null}
+
       <div
         className={cn(
           "mb-8 rounded-full border px-4 py-1.5 text-sm font-medium",

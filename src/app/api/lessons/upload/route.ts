@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("audio");
     const studentId = formData.get("student_id");
+    const reservationId = formData.get("reservation_id");
     const durationSeconds = parseDurationSeconds(
       formData.get("duration_seconds")
     );
@@ -83,6 +84,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (
+      reservationId !== null &&
+      (typeof reservationId !== "string" || !reservationId)
+    ) {
+      return NextResponse.json(
+        { error: "予約IDの形式が正しくありません。" },
+        { status: 400 }
+      );
+    }
+
     if (durationSeconds === null) {
       return NextResponse.json(
         { error: "録音時間を取得できませんでした。" },
@@ -111,6 +122,7 @@ export async function POST(request: NextRequest) {
         audio_path: audioKey,
         audio_expires_at: audioExpiresAt.toISOString(),
         status: "uploading",
+        reservation_id: reservationId || null,
       })
       .select("id")
       .single();
@@ -119,6 +131,21 @@ export async function POST(request: NextRequest) {
       await deleteAudio(audioKey).catch(() => undefined);
 
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (reservationId) {
+      const { error: reservationError } = await supabase
+        .from("reservations")
+        .update({ status: "completed" })
+        .eq("id", reservationId)
+        .eq("teacher_id", user.id);
+
+      if (reservationError) {
+        return NextResponse.json(
+          { error: reservationError.message },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json({
