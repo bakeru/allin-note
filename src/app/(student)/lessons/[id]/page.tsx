@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/empty-state";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getSignedAudioUrl } from "@/lib/storage/r2";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -26,6 +27,16 @@ type StudentSummary = {
   homework?: string[];
   next_lesson_note?: string;
 };
+
+type LessonStatus =
+  | "recording"
+  | "uploading"
+  | "transcribing"
+  | "summarizing"
+  | "ready"
+  | "sent";
+
+type SummaryValue = StudentSummary | string | null | undefined;
 
 const formatRecordedAt = (value: string) =>
   new Intl.DateTimeFormat("ja-JP", {
@@ -57,6 +68,77 @@ function SummarySection({
   );
 }
 
+const getSummaryStatusMessage = (status: LessonStatus) => {
+  if (status === "recording") return "録音中です";
+  if (status === "uploading") return "アップロード中です";
+  if (status === "transcribing") return "文字起こし中です";
+  if (status === "summarizing") return "AIが要約を生成中です...";
+  return "要約がまだ準備されていません";
+};
+
+const parseStudentSummary = (summary: SummaryValue): StudentSummary | null => {
+  if (!summary) {
+    return null;
+  }
+
+  if (typeof summary === "string") {
+    try {
+      const parsed = JSON.parse(summary) as StudentSummary;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  return summary;
+};
+
+const hasStudentSummaryContent = (summary: StudentSummary | null) =>
+  !!(
+    summary?.learned?.length ||
+    summary?.achievements?.length ||
+    summary?.homework?.length ||
+    summary?.next_lesson_note?.trim()
+  );
+
+function StudentSummaryContent({
+  status,
+  summary,
+}: {
+  status: LessonStatus;
+  summary: SummaryValue;
+}) {
+  const parsedSummary = parseStudentSummary(summary);
+
+  if (!parsedSummary) {
+    return <EmptyState message={getSummaryStatusMessage(status)} />;
+  }
+
+  if (!hasStudentSummaryContent(parsedSummary)) {
+    return <EmptyState message="要約内容がありません" />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <SummarySection title="今日学んだこと" items={parsedSummary.learned} />
+      <SummarySection
+        title="よくできた点"
+        items={parsedSummary.achievements}
+      />
+      <SummarySection title="次回までの宿題" items={parsedSummary.homework} />
+
+      {parsedSummary.next_lesson_note?.trim() ? (
+        <section className="space-y-2">
+          <h3 className="text-base font-semibold text-slate-950">次回予定</h3>
+          <p className="text-base leading-7 text-slate-700">
+            {parsedSummary.next_lesson_note}
+          </p>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 export default async function StudentLessonDetailPage({ params }: PageProps) {
   const { id } = await params;
   const user = await getCurrentUser();
@@ -69,11 +151,10 @@ export default async function StudentLessonDetailPage({ params }: PageProps) {
   const { data: lesson } = await supabase
     .from("lessons")
     .select(
-      "id, recorded_at, duration_seconds, summary_for_student, audio_path, audio_deleted"
+      "id, recorded_at, duration_seconds, status, summary_for_student, audio_path, audio_deleted"
     )
     .eq("id", id)
     .eq("student_id", user.id)
-    .eq("status", "ready")
     .not("sent_at", "is", null)
     .eq("hidden_by_student", false)
     .single();
@@ -91,8 +172,6 @@ export default async function StudentLessonDetailPage({ params }: PageProps) {
       audioUrl = null;
     }
   }
-
-  const summary = (lesson.summary_for_student ?? {}) as StudentSummary;
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-4xl flex-col px-5 py-10">
@@ -122,20 +201,10 @@ export default async function StudentLessonDetailPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <SummarySection title="今日学んだこと" items={summary.learned} />
-          <SummarySection title="よくできた点" items={summary.achievements} />
-          <SummarySection title="次回までの宿題" items={summary.homework} />
-
-          {summary.next_lesson_note && (
-            <section className="space-y-2">
-              <h3 className="text-base font-semibold text-slate-950">
-                次回予定
-              </h3>
-              <p className="text-base leading-7 text-slate-700">
-                {summary.next_lesson_note}
-              </p>
-            </section>
-          )}
+          <StudentSummaryContent
+            status={lesson.status as LessonStatus}
+            summary={lesson.summary_for_student as SummaryValue}
+          />
         </CardContent>
       </Card>
 

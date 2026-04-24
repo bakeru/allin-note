@@ -20,6 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EmptyState } from "@/components/shared/empty-state";
 import { cn } from "@/lib/utils";
 
 const DEV_STUDENT_ID = process.env.NEXT_PUBLIC_DEV_STUDENT_ID;
@@ -84,9 +85,9 @@ function SummarySection({
   items,
 }: {
   title: string;
-  items: string[];
+  items?: string[];
 }) {
-  if (!items.length) return null;
+  if (!items?.length) return null;
 
   return (
     <section className="space-y-2">
@@ -99,6 +100,22 @@ function SummarySection({
     </section>
   );
 }
+
+const hasStudentSummaryContent = (summary: StudentSummary | null) =>
+  !!(
+    summary?.learned?.length ||
+    summary?.achievements?.length ||
+    summary?.homework?.length ||
+    summary?.next_lesson_note?.trim()
+  );
+
+const hasTeacherSummaryContent = (summary: TeacherSummary | null) =>
+  !!(
+    summary?.lesson_flow?.trim() ||
+    summary?.teaching_highlights?.length ||
+    summary?.observations?.length ||
+    summary?.questions_for_reflection?.length
+  );
 
 type RecorderPanelProps = {
   studentId?: string;
@@ -477,27 +494,33 @@ export function RecorderPanel({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <SummarySection
-                title="今日学んだこと"
-                items={studentSummary.learned}
-              />
-              <SummarySection
-                title="よくできた点"
-                items={studentSummary.achievements}
-              />
-              <SummarySection
-                title="次回までの宿題"
-                items={studentSummary.homework}
-              />
-              {studentSummary.next_lesson_note && (
-                <section className="space-y-2">
-                  <h4 className="text-sm font-semibold text-sky-950">
-                    次回予定
-                  </h4>
-                  <p className="text-sm leading-6 text-sky-900">
-                    {studentSummary.next_lesson_note}
-                  </p>
-                </section>
+              {hasStudentSummaryContent(studentSummary) ? (
+                <>
+                  <SummarySection
+                    title="今日学んだこと"
+                    items={studentSummary.learned}
+                  />
+                  <SummarySection
+                    title="よくできた点"
+                    items={studentSummary.achievements}
+                  />
+                  <SummarySection
+                    title="次回までの宿題"
+                    items={studentSummary.homework}
+                  />
+                  {studentSummary.next_lesson_note?.trim() ? (
+                    <section className="space-y-2">
+                      <h4 className="text-sm font-semibold text-sky-950">
+                        次回予定
+                      </h4>
+                      <p className="text-sm leading-6 text-sky-900">
+                        {studentSummary.next_lesson_note}
+                      </p>
+                    </section>
+                  ) : null}
+                </>
+              ) : (
+                <EmptyState message="要約内容がありません" />
               )}
             </CardContent>
           </Card>
@@ -510,26 +533,34 @@ export function RecorderPanel({
               <CardDescription>AIが整理しました</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <section className="space-y-2">
-                <h4 className="text-sm font-semibold text-neutral-950">
-                  レッスンの流れ
-                </h4>
-                <p className="text-sm leading-6 text-neutral-700">
-                  {teacherSummary.lesson_flow}
-                </p>
-              </section>
-              <SummarySection
-                title="印象的な場面"
-                items={teacherSummary.teaching_highlights}
-              />
-              <SummarySection
-                title="観察された事実"
-                items={teacherSummary.observations}
-              />
-              <SummarySection
-                title="振り返りのための問い"
-                items={teacherSummary.questions_for_reflection}
-              />
+              {hasTeacherSummaryContent(teacherSummary) ? (
+                <>
+                  {teacherSummary.lesson_flow?.trim() ? (
+                    <section className="space-y-2">
+                      <h4 className="text-sm font-semibold text-neutral-950">
+                        レッスンの流れ
+                      </h4>
+                      <p className="text-sm leading-6 text-neutral-700">
+                        {teacherSummary.lesson_flow}
+                      </p>
+                    </section>
+                  ) : null}
+                  <SummarySection
+                    title="印象的な場面"
+                    items={teacherSummary.teaching_highlights}
+                  />
+                  <SummarySection
+                    title="観察された事実"
+                    items={teacherSummary.observations}
+                  />
+                  <SummarySection
+                    title="振り返りのための問い"
+                    items={teacherSummary.questions_for_reflection}
+                  />
+                </>
+              ) : (
+                <EmptyState message="振り返りメモはまだありません" />
+              )}
             </CardContent>
           </Card>
         </div>
