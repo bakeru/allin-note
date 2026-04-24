@@ -10,6 +10,19 @@ export type CurrentUser = {
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   // フェーズ1: モック認証
   if (process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true") {
+    const mockRole = process.env.NEXT_PUBLIC_MOCK_ROLE || "teacher";
+
+    if (mockRole === "student") {
+      return {
+        id:
+          process.env.NEXT_PUBLIC_DEV_STUDENT_ID ??
+          "00000000-0000-0000-0000-000000000002",
+        email: "student@example.com",
+        role: "student",
+        display_name: "開発用生徒",
+      };
+    }
+
     return {
       id:
         process.env.MOCK_USER_ID ??
