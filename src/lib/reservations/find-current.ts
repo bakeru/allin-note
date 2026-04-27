@@ -12,13 +12,17 @@ type ReservationStudent = {
 type ReservationRow = {
   id: string;
   scheduled_at: string;
+  duration_minutes: number | null;
+  status: string | null;
   student_id: string;
   student: ReservationStudent | ReservationStudent[] | null;
 };
 
-export type RecordingReservation = {
+export type TodayReservation = {
   id: string;
   scheduled_at: string;
+  duration_minutes: number;
+  status: string;
   student_id: string;
   student_name: string;
 };
@@ -31,13 +35,16 @@ const extractSingle = <T,>(value: T | T[] | null | undefined) => {
   return value ?? null;
 };
 
-export async function findReservationForRecording(
+export async function findTodayReservations(
   teacherId: string
-): Promise<RecordingReservation | null> {
+): Promise<TodayReservation[]> {
   const supabase = createServiceClient();
-  const now = new Date();
-  const thirtyMinutesBefore = new Date(now.getTime() - 30 * 60 * 1000);
-  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+  const today = new Date();
+  const startOfDay = new Date(today);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
 
   const { data, error } = await supabase
     .from("reservations")
@@ -45,6 +52,8 @@ export async function findReservationForRecording(
       `
         id,
         scheduled_at,
+        duration_minutes,
+        status,
         student_id,
         student:students!inner(
           user_id,
@@ -53,33 +62,29 @@ export async function findReservationForRecording(
       `
     )
     .eq("teacher_id", teacherId)
-    .eq("status", "scheduled")
-    .gte("scheduled_at", thirtyMinutesBefore.toISOString())
-    .lte("scheduled_at", oneHourLater.toISOString())
-    .order("scheduled_at", { ascending: true })
-    .limit(1);
+    .gte("scheduled_at", startOfDay.toISOString())
+    .lte("scheduled_at", endOfDay.toISOString())
+    .order("scheduled_at", { ascending: true });
 
   if (error) {
     if (error.message.includes("public.reservations")) {
-      return null;
+      return [];
     }
 
     throw new Error(error.message);
   }
 
-  const reservation = (data?.[0] as ReservationRow | undefined) ?? null;
+  return (data as ReservationRow[] | null)?.map((reservation) => {
+    const student = extractSingle(reservation.student);
+    const profile = extractSingle(student?.profile);
 
-  if (!reservation) {
-    return null;
-  }
-
-  const student = extractSingle(reservation.student);
-  const profile = extractSingle(student?.profile);
-
-  return {
-    id: reservation.id,
-    scheduled_at: reservation.scheduled_at,
-    student_id: reservation.student_id,
-    student_name: profile?.display_name ?? "生徒",
-  };
+    return {
+      id: reservation.id,
+      scheduled_at: reservation.scheduled_at,
+      duration_minutes: reservation.duration_minutes ?? 60,
+      status: reservation.status ?? "scheduled",
+      student_id: reservation.student_id,
+      student_name: profile?.display_name ?? "生徒",
+    };
+  }) ?? [];
 }
