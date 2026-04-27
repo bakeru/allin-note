@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { deleteReservationAction } from "@/actions/reservations";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { CancelReservationButton } from "@/components/reservations/cancel-reservation-button";
+import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -23,6 +22,14 @@ type ReservationRow = {
   duration_minutes: number | null;
   status: string | null;
   notes: string | null;
+  location:
+    | {
+        name?: string | null;
+      }
+    | Array<{
+        name?: string | null;
+      }>
+    | null;
   student:
     | {
         profile:
@@ -66,45 +73,65 @@ const extractName = (reservation: ReservationRow) => {
   return profile?.display_name ?? "生徒";
 };
 
-function ReservationCard({
-  reservation,
-  tone = "default",
-}: {
-  reservation: ReservationRow;
-  tone?: "default" | "muted";
-}) {
+const extractLocationName = (reservation: ReservationRow) => {
+  const location = Array.isArray(reservation.location)
+    ? reservation.location[0]
+    : reservation.location;
+
+  return location?.name ?? "";
+};
+
+function ReservationCard({ reservation }: { reservation: ReservationRow }) {
+  const status = reservation.status ?? "scheduled";
+  const isCancelled = status.startsWith("cancelled");
+  const isCompleted = status === "completed";
+
   return (
     <Card
       className={cn(
-        "rounded-lg border-0 ring-1",
-        tone === "default"
-          ? "bg-white ring-neutral-200"
-          : "bg-neutral-100/80 ring-neutral-200"
+        "rounded-lg border-0 ring-1 transition",
+        isCompleted || isCancelled
+          ? "bg-neutral-50 ring-neutral-200"
+          : "bg-white ring-neutral-200"
       )}
     >
       <CardHeader>
-        <CardTitle className="text-lg">{extractName(reservation)}さん</CardTitle>
-        <CardDescription>{formatDateTime(reservation.scheduled_at)}</CardDescription>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-lg">
+              {extractName(reservation)}さん
+            </CardTitle>
+            <p className="text-sm text-neutral-600">
+              {formatDateTime(reservation.scheduled_at)}
+            </p>
+          </div>
+          <ReservationStatusBadge status={reservation.status} />
+        </div>
       </CardHeader>
       <CardContent className="space-y-2 text-sm text-neutral-700">
         <p>所要時間: {reservation.duration_minutes ?? 60}分</p>
-        <p>状態: {reservation.status === "completed" ? "完了" : "予定"}</p>
+        {extractLocationName(reservation) ? (
+          <p>場所: {extractLocationName(reservation)}</p>
+        ) : null}
         {reservation.notes ? <p>メモ: {reservation.notes}</p> : null}
+        {status === "scheduled" ? (
+          <div className="flex justify-end gap-2 pt-2">
+            <Link
+              href={`/reservations/${reservation.id}/edit`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              編集
+            </Link>
+            <CancelReservationButton
+              reservationId={reservation.id}
+              scheduledAt={reservation.scheduled_at}
+              deadlineHours={24}
+              lateCancellationPolicy="consume"
+              variant="ghost"
+            />
+          </div>
+        ) : null}
       </CardContent>
-      <CardFooter className="justify-end gap-2 bg-transparent p-4 pt-0">
-        <Link
-          href={`/reservations/${reservation.id}/edit`}
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          編集
-        </Link>
-        <form action={deleteReservationAction}>
-          <input type="hidden" name="reservation_id" value={reservation.id} />
-          <Button type="submit" variant="ghost" size="sm" className="text-neutral-600">
-            削除
-          </Button>
-        </form>
-      </CardFooter>
     </Card>
   );
 }
@@ -130,6 +157,7 @@ export default async function ReservationsPage() {
             duration_minutes,
             status,
             notes,
+            location:locations(name),
             student:students!inner(
               user_id,
               profile:profiles!inner(display_name)
@@ -138,7 +166,6 @@ export default async function ReservationsPage() {
         )
         .eq("teacher_id", user.id)
         .gte("scheduled_at", nowIso)
-        .eq("status", "scheduled")
         .order("scheduled_at", { ascending: true }),
       supabase
         .from("reservations")
@@ -149,6 +176,7 @@ export default async function ReservationsPage() {
             duration_minutes,
             status,
             notes,
+            location:locations(name),
             student:students!inner(
               user_id,
               profile:profiles!inner(display_name)
@@ -218,10 +246,7 @@ export default async function ReservationsPage() {
         {upcomingReservations?.length ? (
           <div className="grid gap-4">
             {upcomingReservations.map((reservation) => (
-              <ReservationCard
-                key={reservation.id}
-                reservation={reservation as ReservationRow}
-              />
+              <ReservationCard key={reservation.id} reservation={reservation as ReservationRow} />
             ))}
           </div>
         ) : (
@@ -241,11 +266,7 @@ export default async function ReservationsPage() {
         {pastReservations?.length ? (
           <div className="grid gap-4">
             {pastReservations.map((reservation) => (
-              <ReservationCard
-                key={reservation.id}
-                reservation={reservation as ReservationRow}
-                tone="muted"
-              />
+              <ReservationCard key={reservation.id} reservation={reservation as ReservationRow} />
             ))}
           </div>
         ) : (

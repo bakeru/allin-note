@@ -26,6 +26,7 @@ export default async function StudentLayout({
               {[
                 { href: "/", label: "ホーム" },
                 { href: "/student/dashboard", label: "レッスン" },
+                { href: "/student/reservations/new", label: "予約" },
               ].map((item) => (
                 <Link
                   key={item.href}

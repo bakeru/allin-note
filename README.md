@@ -39,7 +39,9 @@ Supabaseダッシュボードで実行する場合:
 10. Run
 11. 次に `supabase/migrations/20260427020000_add_schools.sql` の中身をコピペ
 12. Run
-13. 最後に `supabase/seed.sql` の中身をコピペして Run
+13. 次に `supabase/migrations/20260427030000_add_booking_system.sql` の中身をコピペ
+14. Run
+15. 最後に `supabase/seed.sql` の中身をコピペして Run
 
 注意:
 
@@ -93,6 +95,39 @@ Supabaseダッシュボードで実行する場合:
 8. `NEXT_PUBLIC_MOCK_ROLE=teacher` に戻して、既存の録音・要約機能が動くことを確認
 
 既存の開発データを教室管理に紐付けるための SQL:
+
+```sql
+INSERT INTO schools (name, owner_id)
+VALUES ('開発用教室', '[MOCK_USER_ID]');
+
+INSERT INTO school_teachers (school_id, teacher_id, role)
+VALUES ('[作ったschool_id]', '[MOCK_USER_ID]', 'owner');
+
+UPDATE students
+SET school_id = '[作ったschool_id]'
+WHERE teacher_id = '[MOCK_USER_ID]';
+```
+
+## 場所・キャンセルポリシーつき予約機能の確認
+
+1. Supabase SQL Editor で `supabase/migrations/20260427030000_add_booking_system.sql` を実行
+2. オーナーモックで `/schools` → 対象教室を開く
+3. 場所設定で `場所管理を有効にする` をオンにして保存
+4. キャンセルポリシーで期限と `消化扱い / キャンセル不可` を設定
+5. `エリアを追加` から、たとえば `新宿`, `渋谷` を登録
+6. `場所を追加` から、`ルーム1`, `山田さん宅`, `佐藤さん宅`, `鈴木さん宅` などを登録
+7. 講師モックで `/reservations/new` にアクセスし、共通予約フローで予約を作成
+8. バッファ確認例:
+   - `山田さん宅 9:00-10:00`
+   - `佐藤さん宅 10:30` は同エリア30分バッファなら予約可能
+   - `佐藤さん宅 10:00` は候補に出ない
+   - `鈴木さん宅 11:00` は別エリア60分バッファなら予約可能
+   - `鈴木さん宅 10:30` は候補に出ない
+9. 生徒モックで `/student/reservations/new` にアクセスし、同じフローで予約できることを確認
+10. 生徒モックの `/student/dashboard` で `今後の予約` と `キャンセル` を確認
+11. 期限後に `consume` なら `当日消化`、`no_cancel` ならエラーメッセージになることを確認
+
+既存データに学校・場所を紐付けるための例:
 
 ```sql
 INSERT INTO schools (name, owner_id)

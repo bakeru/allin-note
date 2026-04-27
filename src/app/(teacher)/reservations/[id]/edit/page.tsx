@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { updateReservationAction } from "@/actions/reservations";
@@ -60,11 +61,18 @@ export default async function EditReservationPage({
   }
 
   const supabase = createServiceClient();
-  const [{ data: reservation, error: reservationError }, { data: students, error: studentsError }] =
+  const [
+    { data: reservation, error: reservationError },
+    { data: students, error: studentsError },
+    { data: schoolTeacher, error: schoolError },
+    { data: locations, error: locationsError },
+  ] =
     await Promise.all([
       supabase
         .from("reservations")
-        .select("id, student_id, scheduled_at, duration_minutes, notes")
+        .select(
+          "id, school_id, student_id, scheduled_at, duration_minutes, location_id, notes"
+        )
         .eq("id", id)
         .eq("teacher_id", user.id)
         .single(),
@@ -78,6 +86,22 @@ export default async function EditReservationPage({
         )
         .eq("teacher_id", user.id)
         .order("created_at", { ascending: true }),
+      supabase
+        .from("school_teachers")
+        .select(
+          `
+            school_id,
+            school:schools!inner(location_management_enabled)
+          `
+        )
+        .eq("teacher_id", user.id)
+        .order("joined_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("locations")
+        .select("id, name, school_id")
+        .order("created_at", { ascending: true }),
     ]);
 
   if (reservationError) {
@@ -88,9 +112,25 @@ export default async function EditReservationPage({
     throw new Error(studentsError.message);
   }
 
+  if (schoolError) {
+    throw new Error(schoolError.message);
+  }
+
+  if (locationsError && !locationsError.message.includes("public.locations")) {
+    throw new Error(locationsError.message);
+  }
+
   if (!reservation) {
     notFound();
   }
+
+  const typedSchool = Array.isArray(schoolTeacher?.school)
+    ? schoolTeacher.school[0]
+    : schoolTeacher?.school;
+  const schoolId = reservation.school_id ?? schoolTeacher?.school_id ?? "";
+  const availableLocations = (locations ?? []).filter(
+    (location) => !schoolId || location.school_id === schoolId
+  );
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-3xl px-5 py-8">
@@ -104,6 +144,7 @@ export default async function EditReservationPage({
         <CardContent>
           <form action={updateReservationAction} className="space-y-6">
             <input type="hidden" name="reservation_id" value={reservation.id} />
+            <input type="hidden" name="school_id" value={schoolId} />
 
             <div className="space-y-2">
               <Label htmlFor="student_id">生徒</Label>
@@ -121,6 +162,25 @@ export default async function EditReservationPage({
                 ))}
               </select>
             </div>
+
+            {typedSchool?.location_management_enabled ? (
+              <div className="space-y-2">
+                <Label htmlFor="location_id">場所</Label>
+                <select
+                  id="location_id"
+                  name="location_id"
+                  defaultValue={reservation.location_id ?? ""}
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-neutral-400"
+                >
+                  <option value="">未設定</option>
+                  {availableLocations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="scheduled_at">日時</Label>
@@ -167,6 +227,12 @@ export default async function EditReservationPage({
               </Button>
             </div>
           </form>
+
+          <div className="mt-6">
+            <Link href="/reservations" className="text-sm text-neutral-500 underline underline-offset-4 hover:text-neutral-700">
+              予約一覧へ戻る
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
