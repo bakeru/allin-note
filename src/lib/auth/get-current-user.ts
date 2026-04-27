@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 export type CurrentUser = {
   id: string;
   email: string;
-  role: "teacher" | "student";
+  role: "school_owner" | "teacher" | "student";
   display_name: string;
 };
 
@@ -20,6 +20,17 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
         email: "student@example.com",
         role: "student",
         display_name: "開発用生徒",
+      };
+    }
+
+    if (mockRole === "school_owner") {
+      return {
+        id:
+          process.env.MOCK_USER_ID ??
+          "00000000-0000-0000-0000-000000000001",
+        email: "dev@example.com",
+        role: "school_owner",
+        display_name: "開発用オーナー",
       };
     }
 

@@ -37,7 +37,9 @@ Supabaseダッシュボードで実行する場合:
 8. Run
 9. 次に `supabase/migrations/20260427010000_add_summary_edit_tracking.sql` の中身をコピペ
 10. Run
-11. 最後に `supabase/seed.sql` の中身をコピペして Run
+11. 次に `supabase/migrations/20260427020000_add_schools.sql` の中身をコピペ
+12. Run
+13. 最後に `supabase/seed.sql` の中身をコピペして Run
 
 注意:
 
@@ -78,6 +80,31 @@ Supabaseダッシュボードで実行する場合:
 7. 2回目の確認ダイアログで変更内容のサマリを確認して「更新する」を押す
 8. 編集回数と最終編集日時が更新されることを確認
 9. 送信済みレッスンでは要約編集リンクが表示されないことを確認
+
+## 教室管理機能の確認
+
+1. Supabase SQL Editor で `supabase/migrations/20260427020000_add_schools.sql` を実行
+2. `.env.local` で `NEXT_PUBLIC_MOCK_ROLE=school_owner` に変更
+3. `npm run dev` を再起動
+4. `/schools` にアクセス
+5. 「新しい教室を追加」から教室を作成
+6. 教室詳細画面で生徒数・講師数・今月のレッスン数を確認
+7. `/schools/[schoolId]/teachers` と `/schools/[schoolId]/students` を開く
+8. `NEXT_PUBLIC_MOCK_ROLE=teacher` に戻して、既存の録音・要約機能が動くことを確認
+
+既存の開発データを教室管理に紐付けるための SQL:
+
+```sql
+INSERT INTO schools (name, owner_id)
+VALUES ('開発用教室', '[MOCK_USER_ID]');
+
+INSERT INTO school_teachers (school_id, teacher_id, role)
+VALUES ('[作ったschool_id]', '[MOCK_USER_ID]', 'owner');
+
+UPDATE students
+SET school_id = '[作ったschool_id]'
+WHERE teacher_id = '[MOCK_USER_ID]';
+```
 
 ## 録音アップロード確認
 

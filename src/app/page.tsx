@@ -18,6 +18,16 @@ export default function Home() {
         <p className="mt-8 text-sm text-white/50">開発用導線</p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <Link
+            href="/schools"
+            className={buttonVariants({
+              size: "lg",
+              className:
+                "bg-emerald-500 px-6 !text-white hover:bg-emerald-400 hover:!text-white",
+            })}
+          >
+            教室画面へ(オーナー)
+          </Link>
+          <Link
             href="/dashboard"
             className={buttonVariants({
               size: "lg",
