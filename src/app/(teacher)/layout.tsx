@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { LogoutForm } from "@/components/auth/logout-form";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,10 @@ export default async function TeacherLayout({
               ))}
             </nav>
           </div>
-          <p className="text-sm text-neutral-600">{user.display_name}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-neutral-600">{user.display_name}</p>
+            <LogoutForm className="text-neutral-600" />
+          </div>
         </div>
       </header>
       <main>{children}</main>

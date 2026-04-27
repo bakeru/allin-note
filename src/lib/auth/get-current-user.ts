@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServerSupabaseClient } from "@/lib/supabase/auth";
 
 export type CurrentUser = {
   id: string;
@@ -7,61 +7,68 @@ export type CurrentUser = {
   display_name: string;
 };
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
-  // フェーズ1: モック認証
-  if (process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true") {
-    const mockRole = process.env.NEXT_PUBLIC_MOCK_ROLE || "teacher";
+export function getMockUser(): CurrentUser {
+  const mockRole = process.env.NEXT_PUBLIC_MOCK_ROLE || "teacher";
 
-    if (mockRole === "student") {
-      return {
-        id:
-          process.env.NEXT_PUBLIC_DEV_STUDENT_ID ??
-          "00000000-0000-0000-0000-000000000002",
-        email: "student@example.com",
-        role: "student",
-        display_name: "開発用生徒",
-      };
-    }
-
-    if (mockRole === "school_owner") {
-      return {
-        id:
-          process.env.MOCK_USER_ID ??
-          "00000000-0000-0000-0000-000000000001",
-        email: "dev@example.com",
-        role: "school_owner",
-        display_name: "開発用オーナー",
-      };
-    }
-
+  if (mockRole === "student") {
     return {
       id:
-        process.env.MOCK_USER_ID ??
-        "00000000-0000-0000-0000-000000000001",
-      email: "dev@example.com",
-      role: "teacher",
-      display_name: "開発用講師",
+        process.env.NEXT_PUBLIC_DEV_STUDENT_ID ??
+        "00000000-0000-0000-0000-000000000002",
+      email: "student@example.com",
+      role: "student",
+      display_name: "開発用生徒",
     };
   }
 
-  // フェーズ2: 本物のSupabase Auth
-  const supabase = await createClient();
+  if (mockRole === "school_owner") {
+    return {
+      id:
+        process.env.NEXT_PUBLIC_MOCK_USER_ID ??
+        process.env.MOCK_USER_ID ??
+        "00000000-0000-0000-0000-000000000001",
+      email: "dev@example.com",
+      role: "school_owner",
+      display_name: "開発用オーナー",
+    };
+  }
+
+  return {
+    id:
+      process.env.NEXT_PUBLIC_MOCK_USER_ID ??
+      process.env.MOCK_USER_ID ??
+      "00000000-0000-0000-0000-000000000001",
+    email: "dev@example.com",
+    role: "teacher",
+    display_name: "開発用講師",
+  };
+}
+
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  if (
+    process.env.NEXT_PUBLIC_AUTH_MODE === "mock" ||
+    process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true"
+  ) {
+    return getMockUser();
+  }
+
+  const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user || !user.email) return null;
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, display_name, email")
+    .select("id, email, role, display_name")
     .eq("id", user.id)
     .single();
 
   if (!profile) return null;
 
   return {
-    id: user.id,
-    email: profile.email,
+    id: profile.id,
+    email: profile.email ?? user.email,
     role: profile.role,
     display_name: profile.display_name,
   };

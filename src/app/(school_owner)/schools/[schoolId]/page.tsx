@@ -194,6 +194,23 @@ export default async function SchoolDetailPage({
             </Link>
           </CardContent>
         </Card>
+
+        <Card className="rounded-lg border-0 bg-white ring-1 ring-neutral-200">
+          <CardHeader>
+            <CardTitle className="text-xl text-neutral-950">招待</CardTitle>
+            <CardDescription>
+              講師や生徒の招待リンクを発行して管理します。
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link
+              href={`/schools/${schoolId}/invitations`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              招待を管理する
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">

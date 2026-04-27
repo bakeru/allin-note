@@ -116,7 +116,12 @@ export default async function SchoolStudentsPage({
             {school.name}の生徒
           </h1>
         </div>
-        <ButtonStub label="生徒を追加" />
+        <Link
+          href={`/schools/${schoolId}/invitations/new`}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          生徒を追加
+        </Link>
       </div>
 
       {typedStudents.length ? (
@@ -145,16 +150,5 @@ export default async function SchoolStudentsPage({
         </Card>
       )}
     </div>
-  );
-}
-
-function ButtonStub({ label }: { label: string }) {
-  return (
-    <button
-      type="button"
-      className="inline-flex h-9 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-500"
-    >
-      {label}
-    </button>
   );
 }

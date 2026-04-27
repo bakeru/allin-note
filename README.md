@@ -41,7 +41,9 @@ Supabaseダッシュボードで実行する場合:
 12. Run
 13. 次に `supabase/migrations/20260427030000_add_booking_system.sql` の中身をコピペ
 14. Run
-15. 最後に `supabase/seed.sql` の中身をコピペして Run
+15. 次に `supabase/migrations/20260427040000_add_invitations.sql` の中身をコピペ
+16. Run
+17. 最後に `supabase/seed.sql` の中身をコピペして Run
 
 注意:
 
@@ -139,6 +141,28 @@ VALUES ('[作ったschool_id]', '[MOCK_USER_ID]', 'owner');
 UPDATE students
 SET school_id = '[作ったschool_id]'
 WHERE teacher_id = '[MOCK_USER_ID]';
+```
+
+## 本番認証と招待機能の確認
+
+1. Supabase SQL Editor で `supabase/migrations/20260427040000_add_invitations.sql` を実行
+2. `.env.local` の `NEXT_PUBLIC_AUTH_MODE=production` に変更
+3. `NEXT_PUBLIC_SUPABASE_ANON_KEY` と `SUPABASE_SERVICE_ROLE_KEY` を設定
+4. `npm run dev` を再起動
+5. `/signup` から教室オーナーとして登録
+6. 初回登録後に `/schools` へ進み、作成された教室を確認
+7. `/schools/[schoolId]/invitations` から招待管理を開く
+8. 講師または生徒の招待を作成し、表示されたリンクをコピー
+9. 別ブラウザまたはプライベートウィンドウで `/invite/[token]` を開く
+10. 招待経由で登録し、講師なら `school_teachers`、生徒なら `students` に追加されることを確認
+
+環境変数の目安:
+
+```sh
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_AUTH_MODE=production
 ```
 
 ## 録音アップロード確認
