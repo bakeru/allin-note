@@ -18,21 +18,29 @@ export default function Home() {
         <p className="mt-8 text-sm text-white/50">開発用導線</p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <Link
+            href="/dashboard"
+            className={buttonVariants({
+              size: "lg",
+              className: "bg-white px-6 text-neutral-950 hover:bg-white/90",
+            })}
+          >
+            ダッシュボードへ(講師)
+          </Link>
+          <Link
             href="/record"
             className={buttonVariants({
               size: "lg",
-              className:
-                "bg-white px-6 text-neutral-950 hover:bg-white/90",
+              variant: "outline",
+              className: "border-white/20 px-6 text-white hover:bg-white/10",
             })}
           >
             録音画面へ(講師)
           </Link>
           <Link
-            href="/dashboard"
+            href="/student/dashboard"
             className={buttonVariants({
               size: "lg",
-              className:
-                "bg-sky-500 px-6 text-white hover:bg-sky-400",
+              className: "bg-sky-500 px-6 text-white hover:bg-sky-400",
             })}
           >
             生徒画面へ(生徒)

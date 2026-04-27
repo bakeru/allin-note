@@ -33,7 +33,9 @@ Supabaseダッシュボードで実行する場合:
 4. Run
 5. 次に `supabase/migrations/20260424120000_add_reservations.sql` の中身をコピペ
 6. Run
-7. 最後に `supabase/seed.sql` の中身をコピペして Run
+7. 次に `supabase/migrations/20260427000000_add_teacher_message.sql` の中身をコピペ
+8. Run
+9. 最後に `supabase/seed.sql` の中身をコピペして Run
 
 注意:
 
@@ -48,10 +50,20 @@ Supabaseダッシュボードで実行する場合:
 3. `/reservations` にアクセス
 4. 「新しい予約を追加」から、生徒・日時・所要時間を設定して保存
 5. `/record` にアクセス
-6. 予約時刻の前後に入っていれば、自動で該当生徒の録音画面が表示される
+6. 当日の予約一覧から、対象の予約で「このレッスンを録音開始」を押す
 7. 録音してアップロードまで進める
 8. Supabaseの `reservations` テーブルで `status` が `completed` になっていることを確認
 9. `lessons` テーブルで `reservation_id` が入っていることを確認
+
+## 講師メッセージ機能の確認
+
+1. Supabase SQL Editor で `supabase/migrations/20260427000000_add_teacher_message.sql` を実行
+2. `npm run dev` を再起動
+3. 講師モックで `/dashboard` にアクセス
+4. 未送信のレッスンから「編集する」を開く
+5. 「先生からのメッセージ」を入力して「一旦保存」または「保存して送信」を押す
+6. `/dashboard` へ戻り、未送信/最近送信したレッスンの表示が変わることを確認
+7. 生徒モックで `/student/dashboard` → レッスン詳細を開き、メッセージが表示されることを確認
 
 ## 録音アップロード確認
 

@@ -11,6 +11,8 @@ import {
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/service";
 
+export const dynamic = "force-dynamic";
+
 const formatRecordedAt = (value: string) =>
   new Intl.DateTimeFormat("ja-JP", {
     year: "numeric",
@@ -74,8 +76,7 @@ export default async function StudentDashboardPage() {
                 <Link
                   href={`/lessons/${lesson.id}`}
                   className={buttonVariants({
-                    className:
-                      "bg-sky-600 text-white hover:bg-sky-700",
+                    className: "bg-sky-600 text-white hover:bg-sky-700",
                   })}
                 >
                   見る

@@ -150,9 +150,7 @@ export default async function StudentLessonDetailPage({ params }: PageProps) {
   const supabase = createServiceClient();
   const { data: lesson } = await supabase
     .from("lessons")
-    .select(
-      "id, recorded_at, duration_seconds, status, summary_for_student, audio_path, audio_deleted"
-    )
+    .select("*, audio_path, audio_deleted")
     .eq("id", id)
     .eq("student_id", user.id)
     .not("sent_at", "is", null)
@@ -177,7 +175,7 @@ export default async function StudentLessonDetailPage({ params }: PageProps) {
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-4xl flex-col px-5 py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <Link
-          href="/dashboard"
+          href="/student/dashboard"
           className={buttonVariants({
             variant: "outline",
             className:
@@ -207,6 +205,17 @@ export default async function StudentLessonDetailPage({ params }: PageProps) {
           />
         </CardContent>
       </Card>
+
+      {lesson.teacher_message?.trim() ? (
+        <section className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-6">
+          <h3 className="mb-3 text-lg font-semibold text-amber-900">
+            先生からのメッセージ
+          </h3>
+          <p className="whitespace-pre-wrap text-base leading-7 text-amber-900">
+            {lesson.teacher_message}
+          </p>
+        </section>
+      ) : null}
 
       <Card className="mt-6 border border-slate-200 bg-white ring-0">
         <CardHeader>

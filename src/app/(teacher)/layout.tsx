@@ -25,6 +25,7 @@ export default async function TeacherLayout({
             <nav className="flex items-center gap-1">
               {[
                 { href: "/", label: "ホーム" },
+                { href: "/dashboard", label: "ダッシュボード" },
                 { href: "/record", label: "録音" },
                 { href: "/reservations", label: "予約" },
               ].map((item) => (
