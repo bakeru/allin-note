@@ -35,7 +35,9 @@ Supabaseダッシュボードで実行する場合:
 6. Run
 7. 次に `supabase/migrations/20260427000000_add_teacher_message.sql` の中身をコピペ
 8. Run
-9. 最後に `supabase/seed.sql` の中身をコピペして Run
+9. 次に `supabase/migrations/20260427010000_add_summary_edit_tracking.sql` の中身をコピペ
+10. Run
+11. 最後に `supabase/seed.sql` の中身をコピペして Run
 
 注意:
 
@@ -64,6 +66,18 @@ Supabaseダッシュボードで実行する場合:
 5. 「先生からのメッセージ」を入力して「一旦保存」または「保存して送信」を押す
 6. `/dashboard` へ戻り、未送信/最近送信したレッスンの表示が変わることを確認
 7. 生徒モックで `/student/dashboard` → レッスン詳細を開き、メッセージが表示されることを確認
+
+## 生徒向け要約の編集機能の確認
+
+1. Supabase SQL Editor で `supabase/migrations/20260427010000_add_summary_edit_tracking.sql` を実行
+2. `npm run dev` を再起動
+3. 講師モックで `/dashboard` から未送信のレッスンを開く
+4. 「修正が必要な場合は、こちら」をクリック
+5. 1回目の確認ダイアログで「編集を続ける」を選ぶ
+6. 要約項目を編集し、「変更を保存」を押す
+7. 2回目の確認ダイアログで変更内容のサマリを確認して「更新する」を押す
+8. 編集回数と最終編集日時が更新されることを確認
+9. 送信済みレッスンでは要約編集リンクが表示されないことを確認
 
 ## 録音アップロード確認
 

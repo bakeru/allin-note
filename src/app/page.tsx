@@ -21,7 +21,8 @@ export default function Home() {
             href="/dashboard"
             className={buttonVariants({
               size: "lg",
-              className: "bg-white px-6 text-neutral-950 hover:bg-white/90",
+              className:
+                "!bg-white px-6 !text-neutral-950 hover:!bg-neutral-100 hover:!text-neutral-950",
             })}
           >
             ダッシュボードへ(講師)
@@ -31,7 +32,8 @@ export default function Home() {
             className={buttonVariants({
               size: "lg",
               variant: "outline",
-              className: "border-white/20 px-6 text-white hover:bg-white/10",
+              className:
+                "border-white/20 bg-transparent px-6 !text-white hover:bg-white/10 hover:!text-white",
             })}
           >
             録音画面へ(講師)
@@ -40,7 +42,8 @@ export default function Home() {
             href="/student/dashboard"
             className={buttonVariants({
               size: "lg",
-              className: "bg-sky-500 px-6 text-white hover:bg-sky-400",
+              className:
+                "bg-sky-500 px-6 !text-white hover:bg-sky-400 hover:!text-white",
             })}
           >
             生徒画面へ(生徒)

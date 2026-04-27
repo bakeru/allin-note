@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { saveTeacherMessageAction } from "@/actions/lessons";
+import {
+  saveTeacherMessageAction,
+  type StudentSummary,
+  updateStudentSummaryAction,
+} from "@/actions/lessons";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { SummaryEditor } from "@/components/lessons/summary-editor";
 import {
   Card,
   CardContent,
@@ -17,13 +22,6 @@ import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-type StudentSummary = {
-  learned?: string[];
-  achievements?: string[];
-  homework?: string[];
-  next_lesson_note?: string;
-};
-
 type TeacherSummary = {
   lesson_flow?: string;
   teaching_highlights?: string[];
@@ -37,7 +35,10 @@ type LessonRow = {
   sent_at?: string | null;
   teacher_message?: string | null;
   summary_for_student?: StudentSummary | string | null;
+  summary_for_student_original?: StudentSummary | string | null;
   summary_for_teacher?: TeacherSummary | string | null;
+  summary_edited_at?: string | null;
+  summary_edited_count?: number | null;
   student?:
     | {
         profile:
@@ -105,7 +106,7 @@ const parseJsonSummary = <T,>(summary: T | string | null | undefined): T | null 
   return summary;
 };
 
-function SummaryList({
+function TeacherSummaryList({
   title,
   items,
 }: {
@@ -118,8 +119,8 @@ function SummaryList({
     <section className="space-y-2">
       <h3 className="text-base font-semibold text-neutral-950">{title}</h3>
       <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-neutral-700">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
+        {items.map((item, index) => (
+          <li key={`${title}-${index}`}>{item}</li>
         ))}
       </ul>
     </section>
@@ -165,6 +166,9 @@ export default async function TeacherLessonEditPage({
   const studentName = extractStudentName(typedLesson);
   const studentSummary = parseJsonSummary<StudentSummary>(
     typedLesson.summary_for_student
+  );
+  const originalStudentSummary = parseJsonSummary<StudentSummary>(
+    typedLesson.summary_for_student_original
   );
   const teacherSummary = parseJsonSummary<TeacherSummary>(
     typedLesson.summary_for_teacher
@@ -213,28 +217,15 @@ export default async function TeacherLessonEditPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            {studentSummary ? (
-              <>
-                <SummaryList title="今日学んだこと" items={studentSummary.learned} />
-                <SummaryList
-                  title="よくできた点"
-                  items={studentSummary.achievements}
-                />
-                <SummaryList title="次回までの宿題" items={studentSummary.homework} />
-                {studentSummary.next_lesson_note?.trim() ? (
-                  <section className="space-y-2">
-                    <h3 className="text-base font-semibold text-neutral-950">
-                      次回予定
-                    </h3>
-                    <p className="text-sm leading-6 text-neutral-700">
-                      {studentSummary.next_lesson_note}
-                    </p>
-                  </section>
-                ) : null}
-              </>
-            ) : (
-              <EmptyState message="生徒向け要約はまだありません" />
-            )}
+            <SummaryEditor
+              lessonId={typedLesson.id}
+              initialSummary={studentSummary}
+              originalSummary={originalStudentSummary ?? studentSummary}
+              editedCount={typedLesson.summary_edited_count ?? 0}
+              editedAt={typedLesson.summary_edited_at ?? null}
+              canEdit={!typedLesson.sent_at}
+              onSubmit={updateStudentSummaryAction}
+            />
           </CardContent>
         </Card>
 
@@ -265,15 +256,15 @@ export default async function TeacherLessonEditPage({
                         </p>
                       </section>
                     ) : null}
-                    <SummaryList
+                    <TeacherSummaryList
                       title="印象的な場面"
                       items={teacherSummary.teaching_highlights}
                     />
-                    <SummaryList
+                    <TeacherSummaryList
                       title="観察された事実"
                       items={teacherSummary.observations}
                     />
-                    <SummaryList
+                    <TeacherSummaryList
                       title="振り返りのための問い"
                       items={teacherSummary.questions_for_reflection}
                     />
