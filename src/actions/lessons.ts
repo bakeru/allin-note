@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { sendEmail } from "@/lib/email/send";
+import { lessonNoteEmail } from "@/lib/email/templates/lesson-note";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export type StudentSummary = {
@@ -11,6 +13,29 @@ export type StudentSummary = {
   achievements?: string[];
   homework?: string[];
   next_lesson_note?: string;
+};
+
+const renderStudentSummaryText = (summary: StudentSummary | null) => {
+  if (!summary) {
+    return "今回のレッスン要約はまだありません。";
+  }
+
+  const sections = [
+    summary.learned?.length
+      ? `今日学んだこと\n${summary.learned.map((item) => `・${item}`).join("\n")}`
+      : null,
+    summary.achievements?.length
+      ? `よくできた点\n${summary.achievements.map((item) => `・${item}`).join("\n")}`
+      : null,
+    summary.homework?.length
+      ? `次回までの宿題\n${summary.homework.map((item) => `・${item}`).join("\n")}`
+      : null,
+    summary.next_lesson_note?.trim()
+      ? `次回予定\n${summary.next_lesson_note.trim()}`
+      : null,
+  ].filter(Boolean);
+
+  return sections.length ? sections.join("\n\n") : "今回のレッスン要約はまだありません。";
 };
 
 export async function saveTeacherMessage(
@@ -59,6 +84,58 @@ export async function saveTeacherMessage(
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  if (shouldSend) {
+    const { data: mailLesson, error: mailLessonError } = await supabase
+      .from("lessons")
+      .select(
+        `
+          id,
+          recorded_at,
+          teacher_message,
+          summary_for_student,
+          student:students!inner(
+            user:profiles!students_user_id_fkey(
+              email,
+              display_name
+            )
+          )
+        `
+      )
+      .eq("id", lessonId)
+      .single();
+
+    if (!mailLessonError && mailLesson) {
+      const student = Array.isArray(mailLesson.student)
+        ? mailLesson.student[0]
+        : mailLesson.student;
+      const studentUser = Array.isArray(student?.user) ? student.user[0] : student?.user;
+
+      if (studentUser?.email) {
+        const parsedSummary =
+          typeof mailLesson.summary_for_student === "string"
+            ? (JSON.parse(mailLesson.summary_for_student) as StudentSummary)
+            : ((mailLesson.summary_for_student as StudentSummary | null) ?? null);
+
+        const { subject, html } = lessonNoteEmail({
+          studentName: studentUser.display_name ?? "生徒",
+          teacherName: user.display_name,
+          lessonDate: new Date(mailLesson.recorded_at),
+          teacherMessage: mailLesson.teacher_message ?? "",
+          summary: renderStudentSummaryText(parsedSummary),
+          lessonUrl: `${
+            process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+          }/lessons/${lessonId}`,
+        });
+
+        await sendEmail({
+          to: studentUser.email,
+          subject,
+          html,
+        });
+      }
+    }
   }
 
   revalidatePath("/dashboard");

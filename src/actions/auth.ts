@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getHomePathForRole } from "@/lib/auth/navigation";
+import { sendEmail } from "@/lib/email/send";
+import { studentInvitationEmail } from "@/lib/email/templates/student-invitation";
+import { teacherInvitationEmail } from "@/lib/email/templates/teacher-invitation";
 import { createServerSupabaseClient } from "@/lib/supabase/auth";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -261,7 +264,7 @@ export async function createInvitationAction(formData: FormData) {
   const supabase = createServiceClient();
   const { data: school, error: schoolError } = await supabase
     .from("schools")
-    .select("id")
+    .select("id, name")
     .eq("id", schoolId)
     .eq("owner_id", user.id)
     .is("deleted_at", null)
@@ -317,11 +320,45 @@ export async function createInvitationAction(formData: FormData) {
   const { data: invitation, error } = await supabase
     .from("invitations")
     .insert(insertPayload)
-    .select("token")
+    .select("token, role, email, expires_at, student_name")
     .single();
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  const invitationUrl = `${
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  }/invite/${invitation.token}`;
+  const expiresAt = new Date(invitation.expires_at);
+
+  if (invitation.role === "teacher") {
+    const { subject, html } = teacherInvitationEmail({
+      schoolName: school.name,
+      inviterName: user.display_name,
+      invitationUrl,
+      expiresAt,
+    });
+
+    await sendEmail({
+      to: invitation.email,
+      subject,
+      html,
+    });
+  } else {
+    const { subject, html } = studentInvitationEmail({
+      schoolName: school.name,
+      inviterName: user.display_name,
+      invitationUrl,
+      expiresAt,
+      studentName: invitation.student_name,
+    });
+
+    await sendEmail({
+      to: invitation.email,
+      subject,
+      html,
+    });
   }
 
   revalidatePath(`/schools/${schoolId}/invitations`);

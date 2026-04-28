@@ -4,9 +4,22 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { sendEmail } from "@/lib/email/send";
+import { reservationCancelledEmail } from "@/lib/email/templates/reservation-cancelled";
+import { reservationConfirmedEmail } from "@/lib/email/templates/reservation-confirmed";
 import { createServiceClient } from "@/lib/supabase/service";
 
 const ALLOWED_DURATIONS = new Set([30, 45, 60, 90]);
+
+type ReservationEmailPayload = {
+  teacherEmail: string | null;
+  teacherName: string;
+  studentEmail: string | null;
+  studentName: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  locationName: string | null;
+};
 
 export type ReservationPayload = {
   schoolId: string;
@@ -103,6 +116,128 @@ const validatePayload = (payload: ReservationPayload) => {
   };
 };
 
+async function buildReservationEmailPayload(
+  supabase: ReturnType<typeof createServiceClient>,
+  params: {
+    teacherId: string;
+    studentId: string;
+    locationId?: string | null;
+    scheduledAt: string;
+    durationMinutes: number;
+  }
+): Promise<ReservationEmailPayload> {
+  const [
+    { data: teacherProfile, error: teacherError },
+    { data: studentProfile, error: studentError },
+    locationResult,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("email, display_name")
+      .eq("id", params.teacherId)
+      .single(),
+    supabase
+      .from("profiles")
+      .select("email, display_name")
+      .eq("id", params.studentId)
+      .single(),
+    params.locationId
+      ? supabase.from("locations").select("name").eq("id", params.locationId).single()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+
+  if (teacherError) {
+    throw new Error(teacherError.message);
+  }
+
+  if (studentError) {
+    throw new Error(studentError.message);
+  }
+
+  if (locationResult.error) {
+    throw new Error(locationResult.error.message);
+  }
+
+  return {
+    teacherEmail: teacherProfile?.email ?? null,
+    teacherName: teacherProfile?.display_name ?? "講師",
+    studentEmail: studentProfile?.email ?? null,
+    studentName: studentProfile?.display_name ?? "生徒",
+    scheduledAt: params.scheduledAt,
+    durationMinutes: params.durationMinutes,
+    locationName: locationResult.data?.name ?? null,
+  };
+}
+
+async function sendReservationConfirmedEmails(
+  payload: ReservationEmailPayload,
+) {
+  const reservationUrl = `${
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  }/reservations`;
+
+  if (payload.teacherEmail) {
+    const { subject, html } = reservationConfirmedEmail({
+      recipientName: payload.teacherName,
+      reservationDate: new Date(payload.scheduledAt),
+      durationMinutes: payload.durationMinutes,
+      locationName: payload.locationName,
+      teacherName: payload.teacherName,
+      studentName: payload.studentName,
+      reservationUrl,
+    });
+
+    await sendEmail({ to: payload.teacherEmail, subject, html });
+  }
+
+  if (payload.studentEmail) {
+    const { subject, html } = reservationConfirmedEmail({
+      recipientName: payload.studentName,
+      reservationDate: new Date(payload.scheduledAt),
+      durationMinutes: payload.durationMinutes,
+      locationName: payload.locationName,
+      teacherName: payload.teacherName,
+      studentName: payload.studentName,
+      reservationUrl: `${
+        process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+      }/student/dashboard`,
+    });
+
+    await sendEmail({ to: payload.studentEmail, subject, html });
+  }
+}
+
+async function sendReservationCancelledEmails(
+  payload: ReservationEmailPayload,
+  cancelledBy: string,
+  cancellationType: "cancelled" | "cancelled_late" | "cancelled_by_teacher",
+  reason?: string
+) {
+  if (payload.teacherEmail) {
+    const { subject, html } = reservationCancelledEmail({
+      recipientName: payload.teacherName,
+      reservationDate: new Date(payload.scheduledAt),
+      cancelledBy,
+      reason,
+      cancellationType,
+    });
+
+    await sendEmail({ to: payload.teacherEmail, subject, html });
+  }
+
+  if (payload.studentEmail) {
+    const { subject, html } = reservationCancelledEmail({
+      recipientName: payload.studentName,
+      reservationDate: new Date(payload.scheduledAt),
+      cancelledBy,
+      reason,
+      cancellationType,
+    });
+
+    await sendEmail({ to: payload.studentEmail, subject, html });
+  }
+}
+
 export async function createReservationByPayload(payload: ReservationPayload) {
   const user = await getCurrentUser();
 
@@ -189,6 +324,16 @@ export async function createReservationByPayload(payload: ReservationPayload) {
   if (error) {
     throw new Error(error.message);
   }
+
+  const emailPayload = await buildReservationEmailPayload(supabase, {
+    teacherId: normalized.teacherId,
+    studentId: normalized.studentId,
+    locationId: normalized.locationId,
+    scheduledAt: normalized.scheduledAt,
+    durationMinutes: normalized.durationMinutes,
+  });
+
+  await sendReservationConfirmedEmails(emailPayload);
 
   revalidatePath("/reservations");
   revalidatePath("/record");
@@ -300,6 +445,8 @@ export async function cancelReservationAction(
         teacher_id,
         student_id,
         scheduled_at,
+        duration_minutes,
+        location_id,
         status,
         school:schools!reservations_school_id_fkey(
           cancellation_deadline_hours,
@@ -364,6 +511,21 @@ export async function cancelReservationAction(
   if (updateError) {
     throw new Error(updateError.message);
   }
+
+  const emailPayload = await buildReservationEmailPayload(supabase, {
+    teacherId: reservation.teacher_id,
+    studentId: reservation.student_id,
+    locationId: reservation.location_id,
+    scheduledAt: reservation.scheduled_at,
+    durationMinutes: reservation.duration_minutes ?? 60,
+  });
+
+  await sendReservationCancelledEmails(
+    emailPayload,
+    user.display_name,
+    newStatus as "cancelled" | "cancelled_late" | "cancelled_by_teacher",
+    reason
+  );
 
   revalidatePath("/reservations");
   revalidatePath("/record");
