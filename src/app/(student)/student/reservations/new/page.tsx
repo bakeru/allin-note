@@ -25,6 +25,7 @@ export default async function StudentNewReservationPage() {
     .from("students")
     .select("user_id, teacher_id, school_id, default_location_id")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .single();
 
   if (error) {
@@ -54,6 +55,7 @@ export default async function StudentNewReservationPage() {
         .from("schools")
         .select("id, location_management_enabled")
         .eq("id", student.school_id)
+        .is("deleted_at", null)
         .single(),
       supabase
         .from("locations")
@@ -66,6 +68,7 @@ export default async function StudentNewReservationPage() {
           `
         )
         .eq("school_id", student.school_id)
+        .is("deleted_at", null)
         .order("created_at", { ascending: true }),
     ]);
 

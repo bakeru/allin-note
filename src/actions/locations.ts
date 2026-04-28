@@ -23,6 +23,7 @@ const ensureSchoolOwnership = async (schoolId: string, ownerId: string) => {
     .select("id")
     .eq("id", schoolId)
     .eq("owner_id", ownerId)
+    .is("deleted_at", null)
     .single();
 
   if (error) {
@@ -87,7 +88,8 @@ export async function updateAreaAction(formData: FormData) {
     .from("areas")
     .update({ name: name.trim() })
     .eq("id", areaId)
-    .eq("school_id", schoolId);
+    .eq("school_id", schoolId)
+    .is("deleted_at", null);
 
   if (error) {
     throw new Error(error.message);
@@ -114,9 +116,10 @@ export async function deleteAreaAction(formData: FormData) {
   const supabase = await ensureSchoolOwnership(schoolId, user.id);
   const { error } = await supabase
     .from("areas")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("id", areaId)
-    .eq("school_id", schoolId);
+    .eq("school_id", schoolId)
+    .is("deleted_at", null);
 
   if (error) {
     throw new Error(error.message);
@@ -200,7 +203,8 @@ export async function updateLocationAction(formData: FormData) {
       notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
     })
     .eq("id", locationId)
-    .eq("school_id", schoolId);
+    .eq("school_id", schoolId)
+    .is("deleted_at", null);
 
   if (error) {
     throw new Error(error.message);
@@ -227,9 +231,10 @@ export async function deleteLocationAction(formData: FormData) {
   const supabase = await ensureSchoolOwnership(schoolId, user.id);
   const { error } = await supabase
     .from("locations")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("id", locationId)
-    .eq("school_id", schoolId);
+    .eq("school_id", schoolId)
+    .is("deleted_at", null);
 
   if (error) {
     throw new Error(error.message);

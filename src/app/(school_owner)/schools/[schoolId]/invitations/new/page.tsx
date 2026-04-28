@@ -33,6 +33,7 @@ export default async function NewInvitationPage({
         .select("id, name")
         .eq("id", schoolId)
         .eq("owner_id", user.id)
+        .is("deleted_at", null)
         .single(),
       supabase
         .from("school_teachers")
@@ -48,6 +49,7 @@ export default async function NewInvitationPage({
         .from("locations")
         .select("id, name")
         .eq("school_id", schoolId)
+        .is("deleted_at", null)
         .order("created_at", { ascending: true }),
     ]);
 

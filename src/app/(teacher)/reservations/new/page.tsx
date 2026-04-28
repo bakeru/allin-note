@@ -34,6 +34,7 @@ export default async function NewReservationPage() {
           `
         )
         .eq("teacher_id", user.id)
+        .is("deleted_at", null)
         .order("created_at", { ascending: true }),
       supabase
         .from("school_teachers")
@@ -58,6 +59,7 @@ export default async function NewReservationPage() {
             school_id
           `
         )
+        .is("deleted_at", null)
         .order("created_at", { ascending: true }),
     ]);
 

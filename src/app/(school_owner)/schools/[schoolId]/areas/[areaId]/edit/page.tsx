@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { deleteAreaAction, updateAreaAction } from "@/actions/locations";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -33,6 +34,7 @@ export default async function EditAreaPage({
     .select("id, name")
     .eq("id", areaId)
     .eq("school_id", schoolId)
+    .is("deleted_at", null)
     .single();
 
   if (error) throw new Error(error.message);
@@ -69,13 +71,18 @@ export default async function EditAreaPage({
             </div>
           </form>
 
-          <form action={deleteAreaAction} className="flex justify-end">
-            <input type="hidden" name="school_id" value={schoolId} />
-            <input type="hidden" name="area_id" value={areaId} />
-            <Button type="submit" variant="ghost" className="text-neutral-500">
-              削除
-            </Button>
-          </form>
+          <div className="flex justify-end">
+            <ConfirmDeleteDialog
+              triggerLabel="削除"
+              title="エリアを削除"
+              description={`「${area.name}」を削除しますか?`}
+              action={deleteAreaAction}
+              hiddenFields={[
+                { name: "school_id", value: schoolId },
+                { name: "area_id", value: areaId },
+              ]}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

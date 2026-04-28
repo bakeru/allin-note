@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { deleteLocationAction, updateLocationAction } from "@/actions/locations";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -35,11 +36,13 @@ export default async function EditLocationPage({
         .select("id, name, type, area_id, notes")
         .eq("id", locationId)
         .eq("school_id", schoolId)
+        .is("deleted_at", null)
         .single(),
       supabase
         .from("areas")
         .select("id, name")
         .eq("school_id", schoolId)
+        .is("deleted_at", null)
         .order("name", { ascending: true }),
     ]);
 
@@ -119,13 +122,18 @@ export default async function EditLocationPage({
             </div>
           </form>
 
-          <form action={deleteLocationAction} className="flex justify-end">
-            <input type="hidden" name="school_id" value={schoolId} />
-            <input type="hidden" name="location_id" value={locationId} />
-            <Button type="submit" variant="ghost" className="text-neutral-500">
-              削除
-            </Button>
-          </form>
+          <div className="flex justify-end">
+            <ConfirmDeleteDialog
+              triggerLabel="削除"
+              title="場所を削除"
+              description={`「${location.name}」を削除しますか?`}
+              action={deleteLocationAction}
+              hiddenFields={[
+                { name: "school_id", value: schoolId },
+                { name: "location_id", value: locationId },
+              ]}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

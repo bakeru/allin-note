@@ -35,11 +35,13 @@ export default async function NewLocationPage({
         .select("id, name")
         .eq("id", schoolId)
         .eq("owner_id", user.id)
+        .is("deleted_at", null)
         .single(),
       supabase
         .from("areas")
         .select("id, name")
         .eq("school_id", schoolId)
+        .is("deleted_at", null)
         .order("name", { ascending: true }),
     ]);
 

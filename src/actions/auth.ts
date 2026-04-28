@@ -264,6 +264,7 @@ export async function createInvitationAction(formData: FormData) {
     .select("id")
     .eq("id", schoolId)
     .eq("owner_id", user.id)
+    .is("deleted_at", null)
     .single();
 
   if (schoolError) {
@@ -460,6 +461,7 @@ export async function acceptInvitationAction(formData: FormData) {
       status: "active",
       notes: null,
       default_location_id: invitation.default_location_id,
+      deleted_at: null,
     });
 
     if (studentError) {

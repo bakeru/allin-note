@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { removeStudentFromSchoolAction } from "@/actions/students";
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -39,6 +41,7 @@ export default async function SchoolStudentsPage({
     .select("id, name")
     .eq("id", schoolId)
     .eq("owner_id", user.id)
+    .is("deleted_at", null)
     .single();
 
   if (schoolError) {
@@ -57,6 +60,7 @@ export default async function SchoolStudentsPage({
     .from("students")
     .select("user_id, teacher_id, created_at")
     .eq("school_id", schoolId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -122,6 +126,18 @@ export default async function SchoolStudentsPage({
                   担当講師: {displayNameById.get(student.teacher_id) || "未設定"}
                 </CardDescription>
               </CardHeader>
+              <CardContent className="flex justify-end pt-0">
+                <ConfirmDeleteDialog
+                  triggerLabel="削除"
+                  title="生徒を削除"
+                  description={`「${displayNameById.get(student.user_id) || "この生徒"}」を教室から外しますか?`}
+                  action={removeStudentFromSchoolAction}
+                  hiddenFields={[
+                    { name: "school_id", value: schoolId },
+                    { name: "student_id", value: student.user_id },
+                  ]}
+                />
+              </CardContent>
             </Card>
           ))}
         </div>

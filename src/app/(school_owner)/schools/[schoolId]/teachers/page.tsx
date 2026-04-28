@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { removeTeacherMembershipAction } from "@/actions/schools";
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -57,6 +59,7 @@ export default async function SchoolTeachersPage({
     .select("id, name")
     .eq("id", schoolId)
     .eq("owner_id", user.id)
+    .is("deleted_at", null)
     .single();
 
   if (schoolError) {
@@ -130,8 +133,19 @@ export default async function SchoolTeachersPage({
                   </CardTitle>
                   <CardDescription>{teacher.email}</CardDescription>
                 </CardHeader>
-                <CardContent className="text-sm text-neutral-600">
-                  役割: {teacherLink.role}
+                <CardContent className="flex items-center justify-between text-sm text-neutral-600">
+                  <span>役割: {teacherLink.role}</span>
+                  <ConfirmDeleteDialog
+                    triggerLabel="所属を削除"
+                    title="講師の所属を削除"
+                    description={`「${teacher.displayName}」の所属をこの教室から外しますか?`}
+                    action={removeTeacherMembershipAction}
+                    hiddenFields={[
+                      { name: "school_id", value: schoolId },
+                      { name: "membership_id", value: teacherLink.id },
+                    ]}
+                    confirmLabel="所属を削除"
+                  />
                 </CardContent>
               </Card>
             );

@@ -65,6 +65,7 @@ export async function getAvailableTimeSlots(
       "location_management_enabled, buffer_same_location_minutes, buffer_same_area_minutes, buffer_different_area_minutes"
     )
     .eq("id", schoolId)
+    .is("deleted_at", null)
     .single();
 
   if (schoolError) {
@@ -91,6 +92,7 @@ export async function getAvailableTimeSlots(
       .from("locations")
       .select("id, type, area_id")
       .eq("id", locationId)
+      .is("deleted_at", null)
       .single();
 
     if (locationError) {
@@ -113,7 +115,8 @@ export async function getAvailableTimeSlots(
     const { data: locations, error: locationsError } = await supabase
       .from("locations")
       .select("id, type, area_id")
-      .in("id", reservationLocations);
+      .in("id", reservationLocations)
+      .is("deleted_at", null);
 
     if (locationsError) {
       throw new Error(locationsError.message);

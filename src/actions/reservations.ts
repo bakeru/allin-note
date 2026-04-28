@@ -117,6 +117,7 @@ export async function createReservationByPayload(payload: ReservationPayload) {
     .from("students")
     .select("user_id, teacher_id, school_id")
     .eq("user_id", normalized.studentId)
+    .is("deleted_at", null)
     .single();
 
   if (studentError) {
@@ -158,6 +159,7 @@ export async function createReservationByPayload(payload: ReservationPayload) {
       .select("id")
       .eq("id", normalized.locationId)
       .eq("school_id", normalized.schoolId)
+      .is("deleted_at", null)
       .single();
 
     if (locationError) {

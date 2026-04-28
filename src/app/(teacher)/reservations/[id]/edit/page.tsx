@@ -85,6 +85,7 @@ export default async function EditReservationPage({
           `
         )
         .eq("teacher_id", user.id)
+        .is("deleted_at", null)
         .order("created_at", { ascending: true }),
       supabase
         .from("school_teachers")
@@ -101,6 +102,7 @@ export default async function EditReservationPage({
       supabase
         .from("locations")
         .select("id, name, school_id")
+        .is("deleted_at", null)
         .order("created_at", { ascending: true }),
     ]);
 

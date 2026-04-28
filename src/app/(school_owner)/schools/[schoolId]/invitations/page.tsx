@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { cancelInvitationAction } from "@/actions/auth";
+import { deleteInvitationAction } from "@/actions/invitations";
 import { CopyInvitationLink } from "@/components/invitations/copy-invitation-link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -66,6 +67,7 @@ export default async function InvitationsPage({
         .select("id, name")
         .eq("id", schoolId)
         .eq("owner_id", user.id)
+        .is("deleted_at", null)
         .single(),
       supabase
         .from("invitations")
@@ -182,15 +184,16 @@ export default async function InvitationsPage({
                   </CardHeader>
                   <CardContent className="flex flex-wrap gap-3">
                     <CopyInvitationLink url={url} />
-                    {invitation.status === "pending" ? (
-                      <form action={cancelInvitationAction}>
-                        <input type="hidden" name="invitation_id" value={invitation.id} />
-                        <input type="hidden" name="school_id" value={schoolId} />
-                        <Button type="submit" variant="ghost" size="sm">
-                          キャンセル
-                        </Button>
-                      </form>
-                    ) : null}
+                    <ConfirmDeleteDialog
+                      triggerLabel="削除"
+                      title="招待を削除"
+                      description={`「${invitation.email}」への招待リンクを完全に削除しますか?`}
+                      action={deleteInvitationAction}
+                      hiddenFields={[
+                        { name: "invitation_id", value: invitation.id },
+                        { name: "school_id", value: schoolId },
+                      ]}
+                    />
                   </CardContent>
                 </Card>
               );

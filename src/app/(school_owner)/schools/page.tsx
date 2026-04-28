@@ -34,6 +34,7 @@ export default async function SchoolsPage() {
     .from("schools")
     .select("id, name, description, subscription_plan")
     .eq("owner_id", user.id)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -75,7 +76,8 @@ export default async function SchoolsPage() {
         supabase
           .from("students")
           .select("*", { count: "exact", head: true })
-          .eq("school_id", schoolId),
+          .eq("school_id", schoolId)
+          .is("deleted_at", null),
       ]);
 
       countsBySchool.set(schoolId, {

@@ -84,6 +84,7 @@ export default async function StudentDashboardPage() {
           `
         )
         .eq("user_id", user.id)
+        .is("deleted_at", null)
         .single(),
     ]);
 

@@ -45,6 +45,7 @@ export default async function SelectStudentPage() {
       `
     )
     .eq("teacher_id", user.id)
+    .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
   if (error) {

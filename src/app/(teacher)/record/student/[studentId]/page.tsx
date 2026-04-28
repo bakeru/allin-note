@@ -58,6 +58,7 @@ export default async function StudentRecordPage({
     )
     .eq("teacher_id", user.id)
     .eq("user_id", studentId)
+    .is("deleted_at", null)
     .single();
 
   if (error) {

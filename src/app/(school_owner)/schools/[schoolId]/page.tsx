@@ -5,6 +5,7 @@ import {
   updateCancellationPolicyAction,
   updateLocationSettingsAction,
 } from "@/actions/locations";
+import { DeleteSchoolDialog } from "@/components/schools/delete-school-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -44,6 +45,7 @@ export default async function SchoolDetailPage({
     .select("*")
     .eq("id", schoolId)
     .eq("owner_id", user.id)
+    .is("deleted_at", null)
     .single();
 
   if (error) {
@@ -63,12 +65,17 @@ export default async function SchoolDetailPage({
       supabase
         .from("students")
         .select("*", { count: "exact", head: true })
-        .eq("school_id", schoolId),
+        .eq("school_id", schoolId)
+        .is("deleted_at", null),
       supabase
         .from("school_teachers")
         .select("*", { count: "exact", head: true })
         .eq("school_id", schoolId),
-      supabase.from("students").select("user_id").eq("school_id", schoolId),
+      supabase
+        .from("students")
+        .select("user_id")
+        .eq("school_id", schoolId)
+        .is("deleted_at", null),
     ]);
 
   const [
@@ -79,6 +86,7 @@ export default async function SchoolDetailPage({
       .from("areas")
       .select("id, name")
       .eq("school_id", schoolId)
+      .is("deleted_at", null)
       .order("name", { ascending: true }),
     supabase
       .from("locations")
@@ -91,8 +99,14 @@ export default async function SchoolDetailPage({
         `
       )
       .eq("school_id", schoolId)
+      .is("deleted_at", null)
       .order("created_at", { ascending: true }),
   ]);
+
+  const { count: reservationCount } = await supabase
+    .from("reservations")
+    .select("*", { count: "exact", head: true })
+    .eq("school_id", schoolId);
 
   if (areasError && !areasError.message.includes("public.areas")) {
     throw new Error(areasError.message);
@@ -138,6 +152,20 @@ export default async function SchoolDetailPage({
           {typedSchool.subscription_plan ?? "light"} /{" "}
           {typedSchool.subscription_status ?? "active"}
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <DeleteSchoolDialog
+          schoolId={schoolId}
+          schoolName={typedSchool.name}
+          counts={{
+            areaCount: areas?.length ?? 0,
+            locationCount: locations?.length ?? 0,
+            studentCount: studentCount ?? 0,
+            teacherCount: teacherCount ?? 0,
+            reservationCount: reservationCount ?? 0,
+          }}
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

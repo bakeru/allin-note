@@ -33,6 +33,7 @@ export default async function NewAreaPage({
     .select("id, name")
     .eq("id", schoolId)
     .eq("owner_id", user.id)
+    .is("deleted_at", null)
     .single();
 
   if (error) throw new Error(error.message);
