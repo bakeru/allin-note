@@ -113,19 +113,6 @@ async function createProfileForUser(params: {
   }
 }
 
-async function ensureTeacherRecord(userId: string, schoolName: string) {
-  const supabase = createServiceClient();
-  const { error } = await supabase.from("teachers").upsert({
-    user_id: userId,
-    school_name: schoolName,
-    subject: null,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-}
-
 export async function signUpAction(formData: FormData) {
   ensureProductionAuth();
 
@@ -473,8 +460,6 @@ export async function acceptInvitationAction(formData: FormData) {
     existingUser?.role ?? (invitation.role as "teacher" | "student");
 
   if (invitation.role === "teacher") {
-    await ensureTeacherRecord(acceptedUserId, school.name);
-
     const { error: teacherError } = await service.from("school_teachers").upsert({
       school_id: invitation.school_id,
       teacher_id: acceptedUserId,
