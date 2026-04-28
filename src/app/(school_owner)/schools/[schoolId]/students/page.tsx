@@ -18,37 +18,7 @@ export const dynamic = "force-dynamic";
 type StudentRow = {
   user_id: string;
   teacher_id: string;
-  profile?:
-    | {
-        display_name?: string | null;
-      }
-    | Array<{
-        display_name?: string | null;
-      }>
-    | null;
-  teacher?:
-    | {
-        display_name?: string | null;
-      }
-    | Array<{
-        display_name?: string | null;
-      }>
-    | null;
-};
-
-const extractDisplayName = (
-  value:
-    | {
-        display_name?: string | null;
-      }
-    | Array<{
-        display_name?: string | null;
-      }>
-    | null
-    | undefined
-) => {
-  const record = Array.isArray(value) ? value[0] : value;
-  return record?.display_name ?? "";
+  created_at?: string | null;
 };
 
 export default async function SchoolStudentsPage({
@@ -85,14 +55,7 @@ export default async function SchoolStudentsPage({
 
   const { data: students, error } = await supabase
     .from("students")
-    .select(
-      `
-        user_id,
-        teacher_id,
-        profile:profiles!user_id(display_name),
-        teacher:profiles!teacher_id(display_name)
-      `
-    )
+    .select("user_id, teacher_id, created_at")
     .eq("school_id", schoolId)
     .order("created_at", { ascending: true });
 
@@ -101,6 +64,26 @@ export default async function SchoolStudentsPage({
   }
 
   const typedStudents = (students ?? []) as StudentRow[];
+  const profileIds = Array.from(
+    new Set(
+      typedStudents.flatMap((student) => [student.user_id, student.teacher_id])
+    )
+  );
+
+  const { data: profiles, error: profilesError } = profileIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", profileIds)
+    : { data: [], error: null };
+
+  if (profilesError) {
+    throw new Error(profilesError.message);
+  }
+
+  const displayNameById = new Map(
+    (profiles ?? []).map((profile) => [profile.id, profile.display_name ?? ""])
+  );
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col gap-6 px-5 py-8">
@@ -133,10 +116,10 @@ export default async function SchoolStudentsPage({
             >
               <CardHeader>
                 <CardTitle className="text-xl text-neutral-950">
-                  {extractDisplayName(student.profile) || "生徒"}
+                  {displayNameById.get(student.user_id) || "生徒"}
                 </CardTitle>
                 <CardDescription>
-                  担当講師: {extractDisplayName(student.teacher) || "未設定"}
+                  担当講師: {displayNameById.get(student.teacher_id) || "未設定"}
                 </CardDescription>
               </CardHeader>
             </Card>
