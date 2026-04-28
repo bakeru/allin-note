@@ -87,19 +87,19 @@ export default async function SchoolsPage() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl flex-col gap-8 px-5 py-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-neutral-950">教室</h1>
-          <p className="text-sm leading-6 text-neutral-600">
-            契約中の教室をここから管理します。将来的な複数教室にも対応できる形です。
-          </p>
-        </div>
-        <Link href="/schools/new" className={buttonVariants({ size: "lg" })}>
-          新しい教室を追加
-        </Link>
-      </div>
-
       {typedSchools.length ? (
+        <>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold text-neutral-950">教室</h1>
+              <p className="text-sm leading-6 text-neutral-600">
+                契約中の教室をここから管理します。将来的な複数教室にも対応できる形です。
+              </p>
+            </div>
+            <Link href="/schools/new" className={buttonVariants({ size: "lg" })}>
+              新しい教室を追加
+            </Link>
+          </div>
         <div className="grid gap-4 lg:grid-cols-2">
           {typedSchools.map((school) => {
             const counts = countsBySchool.get(school.id) ?? {
@@ -155,10 +155,32 @@ export default async function SchoolsPage() {
             );
           })}
         </div>
+        </>
       ) : (
-        <Card className="rounded-lg border-0 bg-white ring-1 ring-neutral-200">
-          <CardContent className="py-10">
-            <EmptyState message="まだ教室はありません。最初の教室を作成してください。" />
+        <Card className="rounded-lg border-0 bg-white ring-1 ring-emerald-200 shadow-sm">
+          <CardContent className="flex flex-col items-center gap-6 px-6 py-14 text-center sm:px-10">
+            <div className="space-y-3">
+              <p className="text-sm font-medium tracking-wide text-emerald-700">
+                AllIn Note へようこそ
+              </p>
+              <h1 className="text-3xl font-semibold text-neutral-950">
+                {user.display_name}さん、まずは最初の教室を作成しましょう。
+              </h1>
+              <p className="mx-auto max-w-2xl text-sm leading-7 text-neutral-600 sm:text-base">
+                教室を作成すると、生徒や講師の管理、予約の受付、
+                レッスンノートの記録を始められます。
+              </p>
+            </div>
+            <Link
+              href="/schools/new"
+              className={buttonVariants({
+                size: "lg",
+                className: "min-w-56 bg-emerald-600 text-white hover:bg-emerald-500",
+              })}
+            >
+              最初の教室を作成する
+            </Link>
+            <EmptyState message="教室はまだ登録されていません。" />
           </CardContent>
         </Card>
       )}

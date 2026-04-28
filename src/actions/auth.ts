@@ -176,28 +176,6 @@ export async function signUpAction(formData: FormData) {
     role: "school_owner",
   });
 
-  const service = createServiceClient();
-  const schoolName = `${displayName.trim()}の教室`;
-  const { data: school, error: schoolError } = await service
-    .from("schools")
-    .insert({
-      name: schoolName,
-      description: null,
-      owner_id: data.user.id,
-    })
-    .select("id")
-    .single();
-
-  if (schoolError) {
-    throw new Error(schoolError.message);
-  }
-
-  await service.from("school_teachers").insert({
-    school_id: school.id,
-    teacher_id: data.user.id,
-    role: "owner",
-  });
-
   revalidatePath("/schools");
   redirect("/schools");
 }

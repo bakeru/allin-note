@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 
 import { createInvitationAction } from "@/actions/auth";
-import { buttonVariants } from "@/components/ui/button";
 
 type TeacherOption = {
   id: string;
@@ -149,7 +148,10 @@ export function CreateInvitationForm({
         </div>
       )}
 
-      <button type="submit" className={buttonVariants({ className: "w-full" })}>
+      <button
+        type="submit"
+        className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-neutral-900 px-4 text-sm font-medium text-white transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 disabled:pointer-events-none disabled:opacity-50"
+      >
         {submitLabel}
       </button>
     </form>
