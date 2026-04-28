@@ -89,8 +89,8 @@ export default async function SchoolStudentsPage({
       `
         user_id,
         teacher_id,
-        profile:profiles!students_user_id_fkey(display_name),
-        teacher:profiles!students_teacher_id_fkey(display_name)
+        profile:profiles!user_id(display_name),
+        teacher:profiles!teacher_id(display_name)
       `
     )
     .eq("school_id", schoolId)

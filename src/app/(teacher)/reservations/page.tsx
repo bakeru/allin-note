@@ -160,7 +160,7 @@ export default async function ReservationsPage() {
             location:locations(name),
             student:students!inner(
               user_id,
-              profile:profiles!students_user_id_fkey(display_name)
+              profile:profiles!user_id(display_name)
             )
           `
         )
@@ -179,7 +179,7 @@ export default async function ReservationsPage() {
             location:locations(name),
             student:students!inner(
               user_id,
-              profile:profiles!students_user_id_fkey(display_name)
+              profile:profiles!user_id(display_name)
             )
           `
         )

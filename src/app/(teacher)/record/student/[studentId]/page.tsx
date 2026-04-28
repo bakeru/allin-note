@@ -53,7 +53,7 @@ export default async function StudentRecordPage({
     .select(
       `
         user_id,
-        profile:profiles!students_user_id_fkey(display_name)
+        profile:profiles!user_id(display_name)
       `
     )
     .eq("teacher_id", user.id)

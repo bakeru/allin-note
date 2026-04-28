@@ -90,7 +90,7 @@ export default async function StartReservationRecordingPage({
         duration_minutes,
         scheduled_at,
         student:students!inner(
-          profile:profiles!students_user_id_fkey(display_name)
+          profile:profiles!user_id(display_name)
         )
       `
     )

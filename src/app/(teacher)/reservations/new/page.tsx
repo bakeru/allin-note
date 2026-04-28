@@ -30,7 +30,7 @@ export default async function NewReservationPage() {
             user_id,
             default_location_id,
             school_id,
-            profile:profiles!students_user_id_fkey(display_name)
+            profile:profiles!user_id(display_name)
           `
         )
         .eq("teacher_id", user.id)

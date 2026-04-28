@@ -57,7 +57,7 @@ export async function findTodayReservations(
         student_id,
         student:students!inner(
           user_id,
-          profile:profiles!students_user_id_fkey(display_name)
+          profile:profiles!user_id(display_name)
         )
       `
     )

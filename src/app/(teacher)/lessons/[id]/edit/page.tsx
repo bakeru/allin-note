@@ -146,7 +146,7 @@ export default async function TeacherLessonEditPage({
       `
         *,
         student:students!inner(
-          profile:profiles!students_user_id_fkey(display_name)
+          profile:profiles!user_id(display_name)
         )
       `
     )
