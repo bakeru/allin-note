@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { sendEmail } from "@/lib/email/send";
 import { lessonNoteEmail } from "@/lib/email/templates/lesson-note";
 import { createServiceClient } from "@/lib/supabase/service";
+import { buildAppUrl } from "@/lib/utils/app-url";
 
 export type StudentSummary = {
   learned?: string[];
@@ -124,9 +125,7 @@ export async function saveTeacherMessage(
           lessonDate: new Date(mailLesson.recorded_at),
           teacherMessage: mailLesson.teacher_message ?? "",
           summary: renderStudentSummaryText(parsedSummary),
-          lessonUrl: `${
-            process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-          }/lessons/${lessonId}`,
+          lessonUrl: buildAppUrl(`/lessons/${lessonId}`),
         });
 
         await sendEmail({

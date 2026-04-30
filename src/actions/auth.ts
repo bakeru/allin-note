@@ -10,6 +10,7 @@ import { studentInvitationEmail } from "@/lib/email/templates/student-invitation
 import { teacherInvitationEmail } from "@/lib/email/templates/teacher-invitation";
 import { createServerSupabaseClient } from "@/lib/supabase/auth";
 import { createServiceClient } from "@/lib/supabase/service";
+import { buildAppUrl } from "@/lib/utils/app-url";
 
 type InvitationRole = "teacher" | "student";
 type TeacherSchoolRole = "owner" | "head_teacher" | "teacher";
@@ -314,9 +315,7 @@ export async function createInvitationAction(formData: FormData) {
     throw new Error(error.message);
   }
 
-  const invitationUrl = `${
-    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-  }/invite/${invitation.token}`;
+  const invitationUrl = buildAppUrl(`/invite/${invitation.token}`);
   const expiresAt = new Date(invitation.expires_at);
 
   if (invitation.role === "teacher") {

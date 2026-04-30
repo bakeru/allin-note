@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getAppBaseUrl } from "@/lib/utils/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +115,7 @@ export default async function InvitationsPage({
     throw new Error(error.message);
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = getAppBaseUrl();
   const createdUrl =
     typeof createdToken === "string" && createdToken
       ? `${appUrl}/invite/${createdToken}`

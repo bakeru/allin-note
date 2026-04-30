@@ -8,6 +8,7 @@ import { sendEmail } from "@/lib/email/send";
 import { reservationCancelledEmail } from "@/lib/email/templates/reservation-cancelled";
 import { reservationConfirmedEmail } from "@/lib/email/templates/reservation-confirmed";
 import { createServiceClient } from "@/lib/supabase/service";
+import { buildAppUrl } from "@/lib/utils/app-url";
 
 const ALLOWED_DURATIONS = new Set([30, 45, 60, 90]);
 
@@ -172,9 +173,7 @@ async function buildReservationEmailPayload(
 async function sendReservationConfirmedEmails(
   payload: ReservationEmailPayload,
 ) {
-  const reservationUrl = `${
-    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-  }/reservations`;
+  const reservationUrl = buildAppUrl("/reservations");
 
   if (payload.teacherEmail) {
     const { subject, html } = reservationConfirmedEmail({
@@ -198,9 +197,7 @@ async function sendReservationConfirmedEmails(
       locationName: payload.locationName,
       teacherName: payload.teacherName,
       studentName: payload.studentName,
-      reservationUrl: `${
-        process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-      }/student/dashboard`,
+      reservationUrl: buildAppUrl("/student/dashboard"),
     });
 
     await sendEmail({ to: payload.studentEmail, subject, html });
