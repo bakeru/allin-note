@@ -6,8 +6,9 @@ import {
   type StudentSummary,
   updateStudentSummaryAction,
 } from "@/actions/lessons";
-import { Button, buttonVariants } from "@/components/ui/button";
 import { SummaryEditor } from "@/components/lessons/summary-editor";
+import { EmptyState } from "@/components/shared/empty-state";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -15,7 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { EmptyState } from "@/components/shared/empty-state";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/service";
 import { cn } from "@/lib/utils";
@@ -117,8 +117,8 @@ function TeacherSummaryList({
 
   return (
     <section className="space-y-2">
-      <h3 className="text-base font-semibold text-neutral-950">{title}</h3>
-      <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-neutral-700">
+      <h3 className="text-base font-semibold text-slate-950">{title}</h3>
+      <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700">
         {items.map((item, index) => (
           <li key={`${title}-${index}`}>{item}</li>
         ))}
@@ -175,29 +175,37 @@ export default async function TeacherLessonEditPage({
   );
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col gap-8 px-5 py-8">
+    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col gap-8 bg-[#f7fbf8] px-5 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
           <Link
             href="/dashboard"
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({
+              variant: "ghost",
+              size: "sm",
+              className:
+                "rounded-full px-4 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700",
+            })}
           >
             ダッシュボードへ戻る
           </Link>
-          <h1 className="text-3xl font-semibold text-neutral-950">
+          <p className="text-xs font-bold tracking-[0.28em] text-emerald-500">
+            REVIEW BEFORE SEND
+          </p>
+          <h1 className="text-4xl font-bold tracking-tight text-slate-950">
             {studentName}さんのレッスン
           </h1>
-          <p className="text-sm text-neutral-600">
+          <p className="text-base text-slate-500">
             録音日時: {formatRecordedAt(typedLesson.recorded_at)}
           </p>
         </div>
 
         <div
           className={cn(
-            "rounded-full px-4 py-2 text-sm font-medium",
+            "rounded-full px-4 py-2 text-sm font-semibold",
             typedLesson.sent_at
-              ? "bg-neutral-100 text-neutral-700"
-              : "bg-amber-100 text-amber-800"
+              ? "bg-slate-100 text-slate-700"
+              : "bg-emerald-100 text-emerald-700"
           )}
         >
           {typedLesson.sent_at
@@ -206,15 +214,54 @@ export default async function TeacherLessonEditPage({
         </div>
       </div>
 
+      <section className="rounded-[28px] border border-emerald-100 bg-white px-5 py-5 shadow-[0_18px_40px_rgba(15,31,46,0.08)]">
+        <div className="flex flex-wrap items-center gap-3">
+          {[
+            { label: "録音", done: true },
+            { label: "要約", done: true },
+            { label: "編集", active: true },
+            { label: "送信" },
+          ].map((step, index) => (
+            <div key={step.label} className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border text-sm font-bold",
+                    step.done
+                      ? "border-emerald-300 bg-emerald-300 text-slate-950"
+                      : step.active
+                        ? "border-slate-950 bg-slate-950 text-emerald-300"
+                        : "border-slate-200 bg-white text-slate-400"
+                  )}
+                >
+                  {step.done ? "✓" : index + 1}
+                </span>
+                <span className="text-sm font-semibold text-slate-600">
+                  {step.label}
+                </span>
+              </div>
+              {index < 3 ? <span className="h-px w-8 bg-slate-200" /> : null}
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <Card className="rounded-lg border-0 bg-white ring-1 ring-neutral-200">
+        <Card className="rounded-[28px] border-0 bg-white shadow-[0_18px_40px_rgba(15,31,46,0.08)] ring-1 ring-emerald-100">
           <CardHeader>
-            <CardTitle className="text-2xl text-neutral-950">
-              生徒向け要約
-            </CardTitle>
-            <CardDescription>
-              生徒・保護者に届く内容をここで確認できます。
-            </CardDescription>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-3xl text-slate-950">
+                  生徒向け要約
+                </CardTitle>
+                <CardDescription className="mt-2 text-base leading-7">
+                  生徒・保護者に届く内容をここで確認できます。
+                </CardDescription>
+              </div>
+              <span className="rounded-lg bg-slate-950 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-300">
+                AI Summary
+              </span>
+            </div>
           </CardHeader>
           <CardContent className="space-y-5">
             <SummaryEditor
@@ -229,18 +276,18 @@ export default async function TeacherLessonEditPage({
           </CardContent>
         </Card>
 
-        <Card className="rounded-lg border-0 bg-white ring-1 ring-neutral-200">
+        <Card className="rounded-[28px] border-0 bg-white shadow-[0_18px_40px_rgba(15,31,46,0.08)] ring-1 ring-slate-200">
           <CardHeader>
-            <CardTitle className="text-2xl text-neutral-950">
+            <CardTitle className="text-3xl text-slate-950">
               講師向けフィードバック
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="mt-2 text-base leading-7">
               折りたたんで振り返りメモを確認できます。
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <details className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
-              <summary className="cursor-pointer list-none text-sm font-medium text-neutral-700">
+            <details className="rounded-[20px] border border-slate-200 bg-slate-50 px-5 py-4">
+              <summary className="cursor-pointer list-none text-sm font-semibold text-slate-700">
                 振り返り内容を開く
               </summary>
               <div className="mt-4 space-y-5">
@@ -248,10 +295,10 @@ export default async function TeacherLessonEditPage({
                   <>
                     {teacherSummary.lesson_flow?.trim() ? (
                       <section className="space-y-2">
-                        <h3 className="text-base font-semibold text-neutral-950">
+                        <h3 className="text-base font-semibold text-slate-950">
                           レッスンの流れ
                         </h3>
-                        <p className="text-sm leading-6 text-neutral-700">
+                        <p className="text-sm leading-6 text-slate-700">
                           {teacherSummary.lesson_flow}
                         </p>
                       </section>
@@ -278,12 +325,12 @@ export default async function TeacherLessonEditPage({
         </Card>
       </section>
 
-      <Card className="rounded-lg border-0 bg-white ring-1 ring-neutral-200">
+      <Card className="rounded-[28px] border-0 bg-white shadow-[0_18px_40px_rgba(15,31,46,0.08)] ring-1 ring-emerald-100">
         <CardHeader>
-          <CardTitle className="text-2xl text-neutral-950">
+          <CardTitle className="text-3xl text-slate-950">
             先生からのメッセージ
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="mt-2 text-base leading-7">
             生徒・保護者に届ける温かい一言を入力してください。
           </CardDescription>
         </CardHeader>
@@ -294,14 +341,25 @@ export default async function TeacherLessonEditPage({
               name="teacher_message"
               defaultValue={typedLesson.teacher_message ?? ""}
               rows={7}
-              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-3 text-sm leading-6 text-neutral-900 outline-none transition focus:border-neutral-400"
+              className="w-full rounded-[20px] border border-slate-200 bg-[#fbfefc] px-4 py-4 text-base leading-8 text-slate-900 outline-none transition focus:border-emerald-300"
               placeholder="今日はよく集中して取り組めていました。次回も楽しみにしています。"
             />
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button type="submit" name="intent" value="save" variant="outline">
+              <Button
+                type="submit"
+                name="intent"
+                value="save"
+                variant="outline"
+                className="rounded-2xl px-6"
+              >
                 一旦保存
               </Button>
-              <Button type="submit" name="intent" value="send">
+              <Button
+                type="submit"
+                name="intent"
+                value="send"
+                className="rounded-2xl bg-slate-950 px-6 text-white hover:bg-slate-800"
+              >
                 保存して送信
               </Button>
             </div>

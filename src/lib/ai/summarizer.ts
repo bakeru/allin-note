@@ -9,10 +9,6 @@ import {
   TEACHER_SUMMARY_SYSTEM_PROMPT,
 } from "@/lib/ai/prompts/summary-for-teacher";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export type StudentSummary = {
   learned: string[];
   achievements: string[];
@@ -33,10 +29,17 @@ function ensureOpenAiKey() {
   }
 }
 
+function getOpenAIClient() {
+  ensureOpenAiKey();
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
+
 export async function generateStudentSummary(
   transcript: string
 ): Promise<StudentSummary> {
-  ensureOpenAiKey();
+  const client = getOpenAIClient();
 
   const completion = await client.chat.completions.create({
     model: "gpt-4o",
@@ -57,7 +60,7 @@ export async function generateStudentSummary(
 export async function generateTeacherSummary(
   transcript: string
 ): Promise<TeacherSummary> {
-  ensureOpenAiKey();
+  const client = getOpenAIClient();
 
   const completion = await client.chat.completions.create({
     model: "gpt-4o",

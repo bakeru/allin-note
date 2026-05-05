@@ -1,17 +1,21 @@
 import OpenAI from "openai";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEYが設定されていません。");
+  }
+
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 export async function transcribeAudio(
   audioBuffer: Buffer,
   filename: string,
   mimeType: string
 ): Promise<string> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEYが設定されていません。");
-  }
+  const client = getOpenAIClient();
 
   const file = await OpenAI.toFile(audioBuffer, filename, { type: mimeType });
 

@@ -1,14 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeft, Ellipsis, Play } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getSignedAudioUrl } from "@/lib/storage/r2";
@@ -58,10 +51,16 @@ function SummarySection({
 
   return (
     <section className="space-y-2">
-      <h3 className="text-base font-semibold text-slate-950">{title}</h3>
-      <ul className="list-disc space-y-1 pl-5 text-base leading-7 text-slate-700">
+      <h3 className="flex items-center gap-3 text-sm font-bold uppercase tracking-[0.14em] text-emerald-600">
+        <span className="h-0.5 w-4 rounded bg-emerald-400" />
+        {title}
+      </h3>
+      <ul className="space-y-3 pl-1 text-base leading-8 text-slate-700">
         {items.map((item) => (
-          <li key={item}>{item}</li>
+          <li key={item} className="flex gap-3">
+            <span className="mt-3 h-2 w-2 shrink-0 rounded-full bg-emerald-300" />
+            <span>{item}</span>
+          </li>
         ))}
       </ul>
     </section>
@@ -120,17 +119,17 @@ function StudentSummaryContent({
 
   return (
     <div className="space-y-6">
-      <SummarySection title="今日学んだこと" items={parsedSummary.learned} />
-      <SummarySection
-        title="よくできた点"
-        items={parsedSummary.achievements}
-      />
+      <SummarySection title="今日のポイント" items={parsedSummary.learned} />
+      <SummarySection title="よくできた点" items={parsedSummary.achievements} />
       <SummarySection title="次回までの宿題" items={parsedSummary.homework} />
 
       {parsedSummary.next_lesson_note?.trim() ? (
         <section className="space-y-2">
-          <h3 className="text-base font-semibold text-slate-950">次回予定</h3>
-          <p className="text-base leading-7 text-slate-700">
+          <h3 className="flex items-center gap-3 text-sm font-bold uppercase tracking-[0.14em] text-emerald-600">
+            <span className="h-0.5 w-4 rounded bg-emerald-400" />
+            次回予定
+          </h3>
+          <p className="text-base leading-8 text-slate-700">
             {parsedSummary.next_lesson_note}
           </p>
         </section>
@@ -172,74 +171,134 @@ export default async function StudentLessonDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-4xl flex-col px-5 py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div className="mx-auto min-h-[calc(100vh-3.5rem)] w-full max-w-md px-4 pb-14 pt-4 sm:max-w-4xl sm:px-5 sm:pt-8">
+      <div className="mb-4 flex items-center justify-between">
         <Link
           href="/student/dashboard"
-          className={buttonVariants({
-            variant: "outline",
-            className:
-              "border-sky-200 bg-white text-slate-700 hover:bg-sky-50",
-          })}
+          className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-[0_10px_20px_rgba(15,31,46,0.05)]"
         >
-          ダッシュボードへ戻る
+          <ChevronLeft className="h-5 w-5" />
         </Link>
-        <p className="text-sm text-slate-600">
-          {formatRecordedAt(lesson.recorded_at)}
-        </p>
+        <p className="text-base font-bold text-slate-950">連絡帳</p>
+        <button
+          type="button"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-[0_10px_20px_rgba(15,31,46,0.05)]"
+        >
+          <Ellipsis className="h-5 w-5" />
+        </button>
       </div>
 
-      <Card className="border border-sky-100 bg-white/95 ring-0">
-        <CardHeader>
-          <CardTitle className="text-2xl text-slate-950">
-            生徒向けレッスンノート
-          </CardTitle>
-          <CardDescription className="text-base leading-7 text-slate-600">
-            AIが整理したレッスン内容です。
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <section className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-[0_16px_40px_rgba(15,31,46,0.08)]">
+        <div className="bg-[linear-gradient(135deg,#e9faf1_0%,#f8fdf9_100%)] px-6 py-6">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-bold tracking-[0.16em] text-emerald-500">
+              {formatRecordedAt(lesson.recorded_at)}
+            </p>
+            <span className="rounded-full border border-emerald-100 bg-white px-4 py-2 text-sm font-bold text-emerald-600">
+              レッスンノート
+            </span>
+          </div>
+          <h1 className="text-[2.05rem] font-extrabold leading-tight tracking-tight text-slate-950">
+            バッハの装飾音、見違えるように整いましたね
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-4 px-6 py-5">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-200 to-orange-300 text-base font-bold text-white">
+            田
+          </span>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
+              FROM TEACHER
+            </p>
+            <p className="text-xl font-bold tracking-tight text-slate-950">
+              田中 美咲 先生
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-5 rounded-[24px] bg-[linear-gradient(135deg,#102232_0%,#1f364b_100%)] px-5 py-5 text-white shadow-[0_18px_45px_rgba(15,31,46,0.22)]">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-300 text-slate-950 shadow-[0_14px_34px_rgba(125,224,176,0.28)]">
+            <Play className="ml-1 h-7 w-7 fill-current" />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-300">
+              LESSON RECORDING
+            </p>
+            <p className="mt-1 text-2xl font-bold tracking-tight">レッスン録音</p>
+          </div>
+          <p className="text-xl font-semibold text-white/65">48:23</p>
+        </div>
+        <div className="mt-5 flex h-10 items-end gap-1.5">
+          {[
+            12, 20, 16, 24, 18, 14, 26, 30, 20, 16, 22, 28, 18, 13, 20, 26,
+            16, 12, 22, 28,
+          ].map((height, index) => (
+            <span
+              key={`${height}-${index}`}
+              className={cn(
+                "block flex-1 rounded-sm",
+                index < 8 ? "bg-emerald-300" : "bg-emerald-300/38"
+              )}
+              style={{ height }}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-5 rounded-[28px] border border-slate-100 bg-white px-6 py-6 shadow-[0_16px_40px_rgba(15,31,46,0.08)]">
+        <div className="space-y-6">
           <StudentSummaryContent
             status={lesson.status as LessonStatus}
             summary={lesson.summary_for_student as SummaryValue}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {lesson.teacher_message?.trim() ? (
-        <section className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-6">
-          <h3 className="mb-3 text-lg font-semibold text-amber-900">
-            先生からのメッセージ
+        <section className="mt-5 rounded-[28px] border border-emerald-200 bg-[linear-gradient(135deg,#f5fcf8_0%,#ffffff_100%)] px-6 py-6 shadow-[0_16px_40px_rgba(15,31,46,0.06)]">
+          <h3 className="mb-4 flex items-center gap-3 text-sm font-bold uppercase tracking-[0.14em] text-emerald-600">
+            <span className="h-0.5 w-4 rounded bg-emerald-400" />
+            先生からのひとこと
           </h3>
-          <p className="whitespace-pre-wrap text-base leading-7 text-amber-900">
+          <p className="whitespace-pre-wrap text-lg leading-9 text-slate-700">
             {lesson.teacher_message}
           </p>
+          <div className="mt-5 flex items-center gap-3 border-t border-emerald-100 pt-4 text-sm text-slate-500">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-orange-200 to-orange-300 font-bold text-white">
+              田
+            </span>
+            <span>
+              先生からのひとこと ·{" "}
+              <strong className="font-semibold text-slate-900">
+                田中 美咲
+              </strong>
+            </span>
+          </div>
         </section>
       ) : null}
 
-      <Card className="mt-6 border border-slate-200 bg-white ring-0">
-        <CardHeader>
-          <CardTitle className="text-xl text-slate-950">音声再生</CardTitle>
-          <CardDescription className="text-base leading-7 text-slate-600">
-            録音されたレッスン音声を確認できます。
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <section className="mt-5 rounded-[24px] border border-slate-100 bg-white px-6 py-6 shadow-[0_16px_40px_rgba(15,31,46,0.06)]">
+        <h2 className="mb-3 text-lg font-bold tracking-tight text-slate-950">
+          音声を再生する
+        </h2>
+        <p className="mb-4 text-sm leading-7 text-slate-500">
+          録音されたレッスン音声を確認できます。
+        </p>
+        <div>
           {audioUrl ? (
             <audio className="w-full" controls src={audioUrl}>
               <track kind="captions" />
             </audio>
           ) : (
-            <p
-              className={cn(
-                "text-base leading-7 text-slate-600"
-              )}
-            >
+            <p className="text-base leading-7 text-slate-600">
               音声ファイルは利用できません。
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }
