@@ -1,4 +1,11 @@
 import { createServiceClient } from "@/lib/supabase/service";
+import {
+  addDaysToDateKey,
+  BOOKING_END_HOUR,
+  BOOKING_START_HOUR,
+  createDateFromDateKey,
+  formatJstDateKey,
+} from "@/lib/reservations/jst";
 
 export type TimeSlot = {
   startTime: Date;
@@ -128,16 +135,23 @@ export async function getAvailableTimeSlots(
   }
 
   const slots: TimeSlot[] = [];
-  const cursor = new Date(startDate);
-  cursor.setHours(0, 0, 0, 0);
-  const finalDay = new Date(endDate);
-  finalDay.setHours(0, 0, 0, 0);
+  let cursorDateKey = formatJstDateKey(startDate);
+  const finalDateKey = formatJstDateKey(endDate);
 
-  while (cursor <= finalDay) {
-    for (let minutes = 9 * 60; minutes + durationMinutes <= 21 * 60; minutes += 30) {
-      const candidateStart = new Date(cursor);
-      candidateStart.setHours(0, minutes, 0, 0);
-      const candidateEnd = new Date(candidateStart.getTime() + durationMinutes * 60 * 1000);
+  while (cursorDateKey <= finalDateKey) {
+    for (
+      let minutes = BOOKING_START_HOUR * 60;
+      minutes + durationMinutes <= BOOKING_END_HOUR * 60;
+      minutes += 30
+    ) {
+      const candidateStart = createDateFromDateKey(
+        cursorDateKey,
+        Math.floor(minutes / 60),
+        minutes % 60
+      );
+      const candidateEnd = new Date(
+        candidateStart.getTime() + durationMinutes * 60 * 1000
+      );
 
       const blocked = (reservations as ReservationRecord[] | null)?.some((reservation) => {
         const existingStart = new Date(reservation.scheduled_at);
@@ -170,7 +184,7 @@ export async function getAvailableTimeSlots(
       }
     }
 
-    cursor.setDate(cursor.getDate() + 1);
+    cursorDateKey = addDaysToDateKey(cursorDateKey, 1);
   }
 
   return slots;

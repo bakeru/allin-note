@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { addDays, format } from "date-fns";
-import { ja } from "date-fns/locale";
+import { addDays } from "date-fns";
 
 import { createReservationByPayload } from "@/actions/reservations";
+import { DateAvailabilityCalendar } from "@/components/reservations/date-availability-calendar";
+import { TimePickerCalendar } from "@/components/reservations/time-picker-calendar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,6 +14,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  formatJstDateKey,
+  formatJstDateLabel,
+  formatJstDateTimeLabel,
+  formatJstTimeLabel,
+} from "@/lib/reservations/jst";
 import { cn } from "@/lib/utils";
 
 type BookingFlowProps = {
@@ -52,6 +59,8 @@ type SlotResponse = {
   endTime: string;
 };
 
+type ReservationSlotStage = "date" | "time";
+
 const DURATION_OPTIONS = [30, 45, 60, 90];
 
 const getLocationTypeLabel = (type: string) => {
@@ -90,9 +99,19 @@ export function BookingFlow({
   const [selectedSlot, setSelectedSlot] = useState<string>("");
   const [stepIndex, setStepIndex] = useState(0);
   const [slots, setSlots] = useState<SlotResponse[]>([]);
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null);
+  const [reservationSlotStage, setReservationSlotStage] =
+    useState<ReservationSlotStage>("date");
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isFetchingSlots, setIsFetchingSlots] = useState(false);
+  const [slotWindow, setSlotWindow] = useState(() => {
+    const startDate = new Date();
+    return {
+      startDate,
+      endDate: addDays(startDate, 14),
+    };
+  });
   const [isPending, startTransition] = useTransition();
 
   const activeStudent = useMemo(
@@ -148,6 +167,7 @@ export function BookingFlow({
 
     const startDate = new Date();
     const endDate = addDays(startDate, 14);
+    setSlotWindow({ startDate, endDate });
     const search = new URLSearchParams({
       schoolId,
       teacherId: selectedTeacherId,
@@ -176,12 +196,22 @@ export function BookingFlow({
       })
       .then((body) => {
         setSlots(body.slots);
-        if (!body.slots.find((slot) => slot.startTime === selectedSlot)) {
-          setSelectedSlot(body.slots[0]?.startTime ?? "");
-        }
+        setSelectedSlot("");
+        const availableDateKeys = Array.from(
+          new Set(body.slots.map((slot) => formatJstDateKey(new Date(slot.startTime))))
+        );
+        setSelectedDateKey((current) =>
+          current && availableDateKeys.includes(current)
+            ? current
+            : availableDateKeys[0] ?? null
+        );
+        setReservationSlotStage("date");
       })
       .catch((error) => {
         setSlots([]);
+        setSelectedSlot("");
+        setSelectedDateKey(null);
+        setReservationSlotStage("date");
         setSlotsError(
           error instanceof Error
             ? error.message
@@ -196,28 +226,62 @@ export function BookingFlow({
     duration,
     schoolId,
     selectedLocationId,
-    selectedSlot,
     selectedTeacherId,
   ]);
 
-  const groupedSlots = useMemo(() => {
-    const groups = new Map<string, SlotResponse[]>();
-
-    slots.forEach((slot) => {
-      const key = format(new Date(slot.startTime), "yyyy-MM-dd");
-      groups.set(key, [...(groups.get(key) ?? []), slot]);
-    });
-
-    return Array.from(groups.entries());
+  const slotsByDate = useMemo(() => {
+    return slots.reduce<Record<string, SlotResponse[]>>((accumulator, slot) => {
+      const dateKey = formatJstDateKey(new Date(slot.startTime));
+      accumulator[dateKey] = [...(accumulator[dateKey] ?? []), slot];
+      return accumulator;
+    }, {});
   }, [slots]);
+
+  const availabilityByDate = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(slotsByDate).map(([dateKey, dateSlots]) => [
+          dateKey,
+          dateSlots.length,
+        ])
+      ),
+    [slotsByDate]
+  );
+
+  const selectedDateSlots = useMemo(
+    () => (selectedDateKey ? slotsByDate[selectedDateKey] ?? [] : []),
+    [selectedDateKey, slotsByDate]
+  );
+
+  const timePickerSlots = useMemo(
+    () =>
+      selectedDateSlots.map((slot) => ({
+        slotKey: slot.startTime,
+        startTime: formatJstTimeLabel(new Date(slot.startTime)),
+        endTime: formatJstTimeLabel(new Date(slot.endTime)),
+      })),
+    [selectedDateSlots]
+  );
 
   const selectedLocation =
     locations.find((entry) => entry.id === selectedLocationId) ?? null;
 
-  const selectedSlotDate = selectedSlot ? new Date(selectedSlot) : null;
+  const selectedSlotRecord =
+    slots.find((slot) => slot.startTime === selectedSlot) ?? null;
+  const selectedSlotDate = selectedSlotRecord
+    ? new Date(selectedSlotRecord.startTime)
+    : null;
+  const slotWindowStartDateKey = formatJstDateKey(slotWindow.startDate);
+  const slotWindowEndDateKey = formatJstDateKey(slotWindow.endDate);
+  const isReservationStep = steps[stepIndex] === "予約可能枠";
 
   const next = () => setStepIndex((current) => Math.min(current + 1, steps.length - 1));
   const back = () => setStepIndex((current) => Math.max(current - 1, 0));
+  const selectDate = (dateKey: string) => {
+    setSelectedDateKey(dateKey);
+    setSelectedSlot("");
+    setReservationSlotStage("time");
+  };
 
   const submit = () => {
     if (!selectedStudentId || !selectedTeacherId || !selectedSlotDate) {
@@ -426,53 +490,93 @@ export function BookingFlow({
           ) : null}
 
           {steps[stepIndex] === "予約可能枠" ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-neutral-950">
                   予約が取れる時間を確認する
                 </h2>
                 <p className="text-sm text-neutral-600">
-                  選んだ条件で、今日から2週間先までの予約可能枠を表示しています。
+                  まず日付を選び、そのあとで時間を選びます。
                 </p>
               </div>
               {isFetchingSlots ? (
-                <p className="text-sm text-neutral-500">予約可能な時間を探しています...</p>
+                <p className="text-sm text-neutral-500">
+                  予約可能な時間を探しています...
+                </p>
               ) : null}
-              {slotsError ? <p className="text-sm text-red-600">{slotsError}</p> : null}
+              {slotsError ? (
+                <p className="text-sm text-red-600">{slotsError}</p>
+              ) : null}
               {!isFetchingSlots && !slots.length && !slotsError ? (
                 <p className="text-sm text-neutral-500">
                   条件に合う予約可能な時間が見つかりませんでした。
                 </p>
               ) : null}
-              <div className="space-y-4">
-                {groupedSlots.map(([dateKey, dateSlots]) => (
-                  <section key={dateKey} className="space-y-2">
-                    <h3 className="text-sm font-semibold text-neutral-700">
-                      {format(new Date(dateKey), "M月d日(E)", { locale: ja })}
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {dateSlots.map((slot) => {
-                        const slotDate = new Date(slot.startTime);
-                        return (
-                          <button
-                            key={slot.startTime}
-                            type="button"
-                            onClick={() => setSelectedSlot(slot.startTime)}
-                            className={cn(
-                              "rounded-lg border px-3 py-2 text-sm transition",
-                              selectedSlot === slot.startTime
-                                ? "border-neutral-950 bg-neutral-950 text-white"
-                                : "border-neutral-200 bg-white text-neutral-900 hover:border-neutral-400"
-                            )}
-                          >
-                            {format(slotDate, "HH:mm")}
-                          </button>
-                        );
-                      })}
+              {!isFetchingSlots && slots.length ? (
+                reservationSlotStage === "date" ? (
+                  <DateAvailabilityCalendar
+                    availabilityByDate={availabilityByDate}
+                    minDateKey={slotWindowStartDateKey}
+                    maxDateKey={slotWindowEndDateKey}
+                    selectedDateKey={selectedDateKey}
+                    onSelectDate={selectDate}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="rounded-3xl border border-[#d7ece0] bg-[#f8fcfa] p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7fbf9e]">
+                            Step 2
+                          </p>
+                          <h3 className="mt-1 text-lg font-semibold text-slate-950">
+                            時間を選ぶ
+                          </h3>
+                          <p className="mt-1 text-sm text-slate-600">
+                            {selectedDateKey
+                              ? `${formatJstDateLabel(selectedDateKey)} の空き枠です。`
+                              : "日付を選び直してください。"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedSlot("");
+                            setReservationSlotStage("date");
+                          }}
+                          className="self-start text-sm font-medium text-[#249768] underline underline-offset-4 transition hover:text-[#1c7a54]"
+                        >
+                          日付を選び直す
+                        </button>
+                      </div>
                     </div>
-                  </section>
-                ))}
-              </div>
+                    <TimePickerCalendar
+                      lessonMin={duration}
+                      selectedSlotKey={selectedSlot || null}
+                      slots={timePickerSlots}
+                      onSelect={setSelectedSlot}
+                    />
+                    {selectedSlotRecord ? (
+                      <div className="rounded-2xl border border-[#d7ece0] bg-[#eff9f3] px-4 py-3 text-sm text-[#1c5d44]">
+                        選択中:{" "}
+                        <span className="font-semibold">
+                          {formatJstDateTimeLabel(
+                            new Date(selectedSlotRecord.startTime)
+                          )}
+                          {" - "}
+                          {formatJstTimeLabel(
+                            new Date(selectedSlotRecord.endTime)
+                          )}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-neutral-500">
+                        予約したい時間をひとつ選んでください。
+                      </p>
+                    )}
+                  </div>
+                )
+              ) : null}
             </div>
           ) : null}
 
@@ -512,10 +616,12 @@ export function BookingFlow({
                 <div>
                   <dt className="text-neutral-500">日時</dt>
                   <dd className="mt-1 font-medium text-neutral-950">
-                    {selectedSlotDate
-                      ? format(selectedSlotDate, "yyyy年M月d日(E) HH:mm", {
-                          locale: ja,
-                        })
+                    {selectedSlotRecord
+                      ? `${formatJstDateTimeLabel(
+                          new Date(selectedSlotRecord.startTime)
+                        )} - ${formatJstTimeLabel(
+                          new Date(selectedSlotRecord.endTime)
+                        )}`
                       : "未選択"}
                   </dd>
                 </div>
@@ -536,10 +642,11 @@ export function BookingFlow({
                   (steps[stepIndex] === "生徒" && !selectedStudentId) ||
                   (steps[stepIndex] === "講師" && !selectedTeacherId) ||
                   (steps[stepIndex] === "場所" && !selectedLocationId) ||
-                  (steps[stepIndex] === "予約可能枠" && !selectedSlot)
+                  (steps[stepIndex] === "予約可能枠" &&
+                    (reservationSlotStage !== "time" || !selectedSlot))
                 }
               >
-                次へ
+                {isReservationStep ? "この時間で確認する" : "次へ"}
               </Button>
             ) : (
               <Button type="button" onClick={submit} disabled={isPending || !selectedSlot}>

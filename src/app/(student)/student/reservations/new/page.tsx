@@ -126,7 +126,7 @@ export default async function StudentNewReservationPage() {
             次回のレッスンを予約
           </CardTitle>
           <CardDescription className="text-slate-600">
-            予約可能な時間だけを一覧から選べます。
+            日付と時間を順番に選びながら、予約できる枠だけを確認できます。
           </CardDescription>
         </CardHeader>
         <CardContent>
