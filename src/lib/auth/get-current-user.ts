@@ -35,10 +35,11 @@ export function getMockUser(): CurrentUser {
 
   return {
     id:
+      process.env.NEXT_PUBLIC_DEV_TEACHER_ID ??
       process.env.NEXT_PUBLIC_MOCK_USER_ID ??
       process.env.MOCK_USER_ID ??
-      "00000000-0000-0000-0000-000000000001",
-    email: "dev@example.com",
+      "00000000-0000-0000-0000-000000000003",
+    email: "teacher@example.com",
     role: "teacher",
     display_name: "開発用講師",
   };

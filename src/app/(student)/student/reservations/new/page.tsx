@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getOrBackfillStudentEnrollment } from "@/lib/students/get-active-student-enrollment";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
@@ -21,27 +22,19 @@ export default async function StudentNewReservationPage() {
   }
 
   const supabase = createServiceClient();
-  const { data: student, error } = await supabase
-    .from("students")
-    .select("user_id, teacher_id, school_id, default_location_id")
-    .eq("user_id", user.id)
-    .is("deleted_at", null)
-    .single();
+  const student = await getOrBackfillStudentEnrollment(user.id);
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!student?.school_id) {
+  if (!student?.school_id || !student.teacher_id) {
     return (
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-3xl px-5 py-8">
         <Card className="w-full rounded-lg border-0 bg-white ring-1 ring-sky-100">
           <CardHeader>
             <CardTitle className="text-2xl text-slate-950">
-              予約できる教室がまだ設定されていません
+              まだ予約を開始できる状態ではありません
             </CardTitle>
             <CardDescription className="text-slate-600">
-              教室側で所属設定が完了すると、ここから予約できるようになります。
+              教室への所属設定と担当講師の紐付けが完了すると、ここから予約できるようになります。
+              すでに招待登録済みの場合は、一度ダッシュボードへ戻ると自動で復旧されます。
             </CardDescription>
           </CardHeader>
         </Card>

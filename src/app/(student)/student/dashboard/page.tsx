@@ -10,6 +10,7 @@ import { CancelReservationButton } from "@/components/reservations/cancel-reserv
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getOrBackfillStudentEnrollment } from "@/lib/students/get-active-student-enrollment";
 import { createServiceClient } from "@/lib/supabase/service";
 import { cn } from "@/lib/utils";
 
@@ -61,8 +62,9 @@ export default async function StudentDashboardPage() {
   }
 
   const supabase = createServiceClient();
-  const [{ data: lessons }, { data: upcomingReservations }, { data: student }] =
+  const [studentEnrollment, { data: lessons }, { data: upcomingReservations }] =
     await Promise.all([
+      getOrBackfillStudentEnrollment(user.id),
       supabase
         .from("lessons")
         .select("id, recorded_at, duration_seconds")
@@ -86,25 +88,25 @@ export default async function StudentDashboardPage() {
         .eq("status", "scheduled")
         .gte("scheduled_at", new Date().toISOString())
         .order("scheduled_at", { ascending: true }),
-      supabase
+    ]);
+
+  const { data: school, error: schoolError } = studentEnrollment?.school_id
+    ? await supabase
         .from("students")
         .select(
-          `
-            school_id,
-            school:schools!students_school_id_fkey(
-              cancellation_deadline_hours,
-              late_cancellation_policy
-            )
-          `
+          "school:schools!students_school_id_fkey(cancellation_deadline_hours, late_cancellation_policy)"
         )
         .eq("user_id", user.id)
         .is("deleted_at", null)
-        .single(),
-    ]);
+        .maybeSingle()
+    : { data: null, error: null };
 
-  const school = Array.isArray(student?.school)
-    ? student.school[0]
-    : student?.school;
+  if (schoolError && !schoolError.message.includes("JSON object requested")) {
+    throw new Error(schoolError.message);
+  }
+
+  const schoolSettings = Array.isArray(school?.school) ? school.school[0] : school?.school;
+  const canBook = !!studentEnrollment?.school_id && !!studentEnrollment.teacher_id;
   const nextReservation = upcomingReservations?.[0] ?? null;
 
   return (
@@ -172,7 +174,7 @@ export default async function StudentDashboardPage() {
                 POLICY
               </p>
               <p className="text-sm font-semibold text-white">
-                {school?.late_cancellation_policy === "no_cancel"
+                {schoolSettings?.late_cancellation_policy === "no_cancel"
                   ? "直前キャンセル制限あり"
                   : "通常キャンセル可"}
               </p>
@@ -191,18 +193,26 @@ export default async function StudentDashboardPage() {
             次回のレッスンを予約
           </h2>
           <p className="mt-2 text-sm leading-7 text-slate-600">
-            空いている時間から選んで、そのまま予約できます。
+            {canBook
+              ? "空いている時間から選んで、そのまま予約できます。"
+              : "教室への所属設定と担当講師の紐付けが完了すると、ここから予約できるようになります。"}
           </p>
-          <Link
-            href="/student/reservations/new"
-            className={buttonVariants({
-              size: "lg",
-              className:
-                "mt-5 w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800",
-            })}
-          >
-            最初の予約を入れる
-          </Link>
+          {canBook ? (
+            <Link
+              href="/student/reservations/new"
+              className={buttonVariants({
+                size: "lg",
+                className:
+                  "mt-5 w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800",
+              })}
+            >
+              最初の予約を入れる
+            </Link>
+          ) : (
+            <div className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+              招待受諾後の所属データを確認中です。反映後はこのまま予約に進めます。
+            </div>
+          )}
         </section>
       )}
 
@@ -216,16 +226,18 @@ export default async function StudentDashboardPage() {
               予約済みのレッスンを確認できます。
             </p>
           </div>
-          <Link
-            href="/student/reservations/new"
-            className={buttonVariants({
-              variant: "ghost",
-              className:
-                "rounded-full px-4 text-sm font-semibold text-slate-500 hover:bg-emerald-50 hover:text-emerald-700",
-            })}
-          >
-            予約する
-          </Link>
+          {canBook ? (
+            <Link
+              href="/student/reservations/new"
+              className={buttonVariants({
+                variant: "ghost",
+                className:
+                  "rounded-full px-4 text-sm font-semibold text-slate-500 hover:bg-emerald-50 hover:text-emerald-700",
+              })}
+            >
+              予約する
+            </Link>
+          ) : null}
         </div>
         {upcomingReservations?.length ? (
           <div className="grid gap-4">
@@ -255,9 +267,9 @@ export default async function StudentDashboardPage() {
                     <CancelReservationButton
                       reservationId={reservation.id}
                       scheduledAt={reservation.scheduled_at}
-                      deadlineHours={school?.cancellation_deadline_hours ?? 24}
+                      deadlineHours={schoolSettings?.cancellation_deadline_hours ?? 24}
                       lateCancellationPolicy={
-                        (school?.late_cancellation_policy as
+                        (schoolSettings?.late_cancellation_policy as
                           | "consume"
                           | "no_cancel"
                           | undefined) ?? "consume"
