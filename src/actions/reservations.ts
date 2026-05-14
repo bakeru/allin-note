@@ -280,8 +280,24 @@ export async function createReservationByPayload(payload: ReservationPayload) {
       throw new Error("この教室の予約は作成できません。");
     }
   } else {
-    if (student.user_id !== user.id || student.teacher_id !== normalized.teacherId) {
+    if (student.user_id !== user.id) {
       throw new Error("自分の予約のみ作成できます。");
+    }
+
+    const { data: selectedTeacherMembership, error: selectedTeacherError } =
+      await supabase
+        .from("school_teachers")
+        .select("id")
+        .eq("school_id", normalized.schoolId)
+        .eq("teacher_id", normalized.teacherId)
+        .maybeSingle();
+
+    if (selectedTeacherError) {
+      throw new Error(selectedTeacherError.message);
+    }
+
+    if (!selectedTeacherMembership) {
+      throw new Error("この講師では予約できません。");
     }
   }
 

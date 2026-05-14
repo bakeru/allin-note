@@ -24,7 +24,7 @@ export default async function StudentNewReservationPage() {
   const supabase = createServiceClient();
   const student = await getOrBackfillStudentEnrollment(user.id);
 
-  if (!student?.school_id || !student.teacher_id) {
+  if (!student?.school_id) {
     return (
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-3xl px-5 py-8">
         <Card className="w-full rounded-lg border-0 bg-white ring-1 ring-sky-100">
@@ -33,7 +33,7 @@ export default async function StudentNewReservationPage() {
               まだ予約を開始できる状態ではありません
             </CardTitle>
             <CardDescription className="text-slate-600">
-              教室への所属設定と担当講師の紐付けが完了すると、ここから予約できるようになります。
+              教室への所属設定が完了すると、ここから予約できるようになります。
               すでに招待登録済みの場合は、一度ダッシュボードへ戻ると自動で復旧されます。
             </CardDescription>
           </CardHeader>
@@ -42,7 +42,11 @@ export default async function StudentNewReservationPage() {
     );
   }
 
-  const [{ data: schoolTeacher }, { data: locations, error: locationError }] =
+  const [
+    { data: school },
+    { data: teachers, error: teacherError },
+    { data: locations, error: locationError },
+  ] =
     await Promise.all([
       supabase
         .from("schools")
@@ -50,6 +54,17 @@ export default async function StudentNewReservationPage() {
         .eq("id", student.school_id)
         .is("deleted_at", null)
         .single(),
+      supabase
+        .from("school_teachers")
+        .select(
+          `
+            teacher_id,
+            role,
+            teacher:profiles!school_teachers_teacher_id_fkey(display_name)
+          `
+        )
+        .eq("school_id", student.school_id)
+        .order("joined_at", { ascending: true }),
       supabase
         .from("locations")
         .select(
@@ -65,8 +80,42 @@ export default async function StudentNewReservationPage() {
         .order("created_at", { ascending: true }),
     ]);
 
+  if (teacherError) {
+    throw new Error(teacherError.message);
+  }
+
   if (locationError && !locationError.message.includes("public.locations")) {
     throw new Error(locationError.message);
+  }
+
+  const teacherOptions = (teachers ?? []).map((teacher) => ({
+    id: teacher.teacher_id,
+    displayName:
+      (Array.isArray(teacher.teacher) ? teacher.teacher[0] : teacher.teacher)
+        ?.display_name ?? "講師",
+    roleLabel:
+      teacher.role === "owner"
+        ? "オーナー"
+        : teacher.role === "head_teacher"
+          ? "主任講師"
+          : "講師",
+  }));
+
+  if (!teacherOptions.length) {
+    return (
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-3xl px-5 py-8">
+        <Card className="w-full rounded-lg border-0 bg-white ring-1 ring-sky-100">
+          <CardHeader>
+            <CardTitle className="text-2xl text-slate-950">
+              予約できる講師がまだ登録されていません
+            </CardTitle>
+            <CardDescription className="text-slate-600">
+              教室側で講師の所属設定が完了すると、ここから予約できるようになります。
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -83,11 +132,12 @@ export default async function StudentNewReservationPage() {
         <CardContent>
           <StudentBookingFlowPage
             studentId={student.user_id}
-            teacherId={student.teacher_id}
+            teacherId={student.teacher_id ?? teacherOptions[0].id}
             schoolId={student.school_id}
             locationManagementEnabled={
-              schoolTeacher?.location_management_enabled ?? false
+              school?.location_management_enabled ?? false
             }
+            teachers={teacherOptions}
             defaultLocationId={student.default_location_id}
             locations={(locations ?? []).map((location) => ({
               id: location.id,

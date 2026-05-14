@@ -23,6 +23,7 @@ type BookingFlowProps = {
   locationManagementEnabled: boolean;
   onComplete: (reservationId: string) => void;
   students?: BookingStudent[];
+  teachers?: BookingTeacher[];
   locations?: BookingLocation[];
   defaultLocationId?: string | null;
 };
@@ -31,6 +32,12 @@ export type BookingStudent = {
   id: string;
   displayName: string;
   defaultLocationId?: string | null;
+};
+
+export type BookingTeacher = {
+  id: string;
+  displayName: string;
+  roleLabel?: string | null;
 };
 
 export type BookingLocation = {
@@ -66,11 +73,15 @@ export function BookingFlow({
   locationManagementEnabled,
   onComplete,
   students = [],
+  teachers = [],
   locations = [],
   defaultLocationId = null,
 }: BookingFlowProps) {
   const [selectedStudentId, setSelectedStudentId] = useState(
     studentId ?? students[0]?.id ?? ""
+  );
+  const [selectedTeacherId, setSelectedTeacherId] = useState(
+    teacherId ?? teachers[0]?.id ?? ""
   );
   const [selectedLocationId, setSelectedLocationId] = useState(
     defaultLocationId ?? ""
@@ -88,6 +99,10 @@ export function BookingFlow({
     () => students.find((entry) => entry.id === selectedStudentId) ?? null,
     [selectedStudentId, students]
   );
+  const activeTeacher = useMemo(
+    () => teachers.find((entry) => entry.id === selectedTeacherId) ?? null,
+    [selectedTeacherId, teachers]
+  );
   const studentLabel =
     activeStudent?.displayName ?? (mode === "student" ? "あなた" : "未選択");
 
@@ -104,12 +119,16 @@ export function BookingFlow({
       nextSteps.push("生徒");
     }
 
+    if (mode === "student") {
+      nextSteps.push("講師");
+    }
+
     if (locationManagementEnabled) {
       nextSteps.push("場所");
     }
 
-    nextSteps.push("時間");
-    nextSteps.push("日時");
+    nextSteps.push("レッスン時間");
+    nextSteps.push("予約可能枠");
     nextSteps.push("確認");
 
     return nextSteps;
@@ -117,6 +136,7 @@ export function BookingFlow({
 
   const canLoadSlots =
     !!selectedStudentId &&
+    !!selectedTeacherId &&
     !!duration &&
     (!locationManagementEnabled || !!selectedLocationId);
 
@@ -130,7 +150,7 @@ export function BookingFlow({
     const endDate = addDays(startDate, 14);
     const search = new URLSearchParams({
       schoolId,
-      teacherId,
+      teacherId: selectedTeacherId,
       durationMinutes: `${duration}`,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
@@ -177,7 +197,7 @@ export function BookingFlow({
     schoolId,
     selectedLocationId,
     selectedSlot,
-    teacherId,
+    selectedTeacherId,
   ]);
 
   const groupedSlots = useMemo(() => {
@@ -200,7 +220,7 @@ export function BookingFlow({
   const back = () => setStepIndex((current) => Math.max(current - 1, 0));
 
   const submit = () => {
-    if (!selectedStudentId || !selectedSlotDate) {
+    if (!selectedStudentId || !selectedTeacherId || !selectedSlotDate) {
       setSubmitError("必要な項目を選択してください。");
       return;
     }
@@ -210,7 +230,7 @@ export function BookingFlow({
       try {
         const reservationId = await createReservationByPayload({
           schoolId,
-          teacherId,
+          teacherId: selectedTeacherId,
           studentId: selectedStudentId,
           scheduledAt: selectedSlotDate.toISOString(),
           durationMinutes: duration,
@@ -294,49 +314,93 @@ export function BookingFlow({
             </div>
           ) : null}
 
+          {steps[stepIndex] === "講師" ? (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold text-neutral-950">
+                  担当講師を選ぶ
+                </h2>
+                <p className="text-sm text-neutral-600">
+                  初期設定の講師をもとにしつつ、必要に応じて変更できます。
+                </p>
+              </div>
+              <label className="space-y-2 text-sm font-medium text-neutral-700">
+                <span>レッスン担当の講師</span>
+                <select
+                  value={selectedTeacherId}
+                  onChange={(event) => setSelectedTeacherId(event.target.value)}
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                >
+                  <option value="">講師を選択してください</option>
+                  {teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacher.displayName}
+                      {teacher.roleLabel ? ` (${teacher.roleLabel})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {activeTeacher ? (
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-950">
+                    {activeTeacher.displayName}
+                  </p>
+                  {activeTeacher.roleLabel ? (
+                    <p className="mt-1 text-xs text-neutral-500">
+                      {activeTeacher.roleLabel}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {steps[stepIndex] === "場所" ? (
             <div className="space-y-4">
               <div>
                 <h2 className="text-xl font-semibold text-neutral-950">場所を選ぶ</h2>
                 <p className="text-sm text-neutral-600">
-                  予約場所に応じて移動バッファを考慮します。
+                  初期設定をもとにしつつ、その都度変更できます。
                 </p>
               </div>
-              <div className="grid gap-3">
-                {locations.map((location) => (
-                  <button
-                    key={location.id}
-                    type="button"
-                    onClick={() => setSelectedLocationId(location.id)}
-                    className={cn(
-                      "rounded-lg border p-4 text-left transition",
-                      selectedLocationId === location.id
-                        ? "border-neutral-950 bg-neutral-950 text-white"
-                        : "border-neutral-200 bg-white text-neutral-900 hover:border-neutral-400"
-                    )}
-                  >
-                    <p className="font-medium">{location.name}</p>
-                    <p
-                      className={cn(
-                        "mt-1 text-sm",
-                        selectedLocationId === location.id
-                          ? "text-white/80"
-                          : "text-neutral-500"
-                      )}
-                    >
-                      {getLocationTypeLabel(location.type)}
+              <label className="space-y-2 text-sm font-medium text-neutral-700">
+                <span>レッスン場所</span>
+                <select
+                  value={selectedLocationId}
+                  onChange={(event) => setSelectedLocationId(event.target.value)}
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900"
+                >
+                  <option value="">場所を選択してください</option>
+                  {locations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
                       {location.areaName ? ` / ${location.areaName}` : ""}
-                    </p>
-                  </button>
-                ))}
-              </div>
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {selectedLocation ? (
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="font-medium text-neutral-950">
+                    {selectedLocation.name}
+                  </p>
+                  <p className="mt-1 text-sm text-neutral-500">
+                    {getLocationTypeLabel(selectedLocation.type)}
+                    {selectedLocation.areaName
+                      ? ` / ${selectedLocation.areaName}`
+                      : ""}
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
-          {steps[stepIndex] === "時間" ? (
+          {steps[stepIndex] === "レッスン時間" ? (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-semibold text-neutral-950">所要時間</h2>
+                <h2 className="text-xl font-semibold text-neutral-950">
+                  レッスン時間を選ぶ
+                </h2>
                 <p className="text-sm text-neutral-600">
                   予約したいレッスン時間を選びます。
                 </p>
@@ -361,12 +425,14 @@ export function BookingFlow({
             </div>
           ) : null}
 
-          {steps[stepIndex] === "日時" ? (
+          {steps[stepIndex] === "予約可能枠" ? (
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-semibold text-neutral-950">日時を選ぶ</h2>
+                <h2 className="text-xl font-semibold text-neutral-950">
+                  予約が取れる時間を確認する
+                </h2>
                 <p className="text-sm text-neutral-600">
-                  今日から2週間先までの予約可能枠です。
+                  選んだ条件で、今日から2週間先までの予約可能枠を表示しています。
                 </p>
               </div>
               {isFetchingSlots ? (
@@ -419,10 +485,18 @@ export function BookingFlow({
               <dl className="grid gap-3 rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm">
                 <div>
                   <dt className="text-neutral-500">生徒</dt>
-                    <dd className="mt-1 font-medium text-neutral-950">
+                  <dd className="mt-1 font-medium text-neutral-950">
                     {studentLabel}
                   </dd>
                 </div>
+                {mode === "student" ? (
+                  <div>
+                    <dt className="text-neutral-500">担当講師</dt>
+                    <dd className="mt-1 font-medium text-neutral-950">
+                      {activeTeacher?.displayName ?? "未選択"}
+                    </dd>
+                  </div>
+                ) : null}
                 {locationManagementEnabled ? (
                   <div>
                     <dt className="text-neutral-500">場所</dt>
@@ -460,8 +534,9 @@ export function BookingFlow({
                 onClick={next}
                 disabled={
                   (steps[stepIndex] === "生徒" && !selectedStudentId) ||
+                  (steps[stepIndex] === "講師" && !selectedTeacherId) ||
                   (steps[stepIndex] === "場所" && !selectedLocationId) ||
-                  (steps[stepIndex] === "日時" && !selectedSlot)
+                  (steps[stepIndex] === "予約可能枠" && !selectedSlot)
                 }
               >
                 次へ

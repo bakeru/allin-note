@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BookingFlow,
   type BookingLocation,
+  type BookingTeacher,
 } from "@/components/reservations/booking-flow";
 
 type StudentBookingFlowPageProps = {
@@ -12,6 +13,7 @@ type StudentBookingFlowPageProps = {
   teacherId: string;
   schoolId: string;
   locationManagementEnabled: boolean;
+  teachers: BookingTeacher[];
   locations: BookingLocation[];
   defaultLocationId?: string | null;
 };

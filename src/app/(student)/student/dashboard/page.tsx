@@ -106,7 +106,7 @@ export default async function StudentDashboardPage() {
   }
 
   const schoolSettings = Array.isArray(school?.school) ? school.school[0] : school?.school;
-  const canBook = !!studentEnrollment?.school_id && !!studentEnrollment.teacher_id;
+  const canBook = !!studentEnrollment?.school_id;
   const nextReservation = upcomingReservations?.[0] ?? null;
 
   return (

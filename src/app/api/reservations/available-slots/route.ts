@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getAvailableTimeSlots } from "@/lib/reservations/get-available-slots";
+import { getOrBackfillStudentEnrollment } from "@/lib/students/get-active-student-enrollment";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -30,6 +32,39 @@ export async function GET(request: NextRequest) {
 
   if (user.role === "teacher" && user.id !== teacherId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (user.role === "student") {
+    const studentEnrollment = await getOrBackfillStudentEnrollment(user.id);
+
+    if (!studentEnrollment?.school_id || studentEnrollment.school_id !== schoolId) {
+      return NextResponse.json(
+        { error: "この教室の予約は利用できません。" },
+        { status: 403 }
+      );
+    }
+
+    const supabase = createServiceClient();
+    const { data: membership, error: membershipError } = await supabase
+      .from("school_teachers")
+      .select("id")
+      .eq("school_id", schoolId)
+      .eq("teacher_id", teacherId)
+      .maybeSingle();
+
+    if (membershipError) {
+      return NextResponse.json(
+        { error: membershipError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!membership) {
+      return NextResponse.json(
+        { error: "この講師では予約できません。" },
+        { status: 403 }
+      );
+    }
   }
 
   if (![30, 45, 60, 90].includes(durationMinutes)) {
