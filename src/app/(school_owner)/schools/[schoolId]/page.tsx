@@ -163,7 +163,7 @@ export default async function SchoolDetailPage({
   const typedLocations = (locations ?? []) as LocationRow[];
 
   return (
-    <div className="min-h-[720px] px-8 py-8">
+    <div className="min-h-[720px] px-5 py-6 md:px-8 md:py-8">
       <div className="mb-5 flex items-center gap-2 text-sm font-medium text-slate-500">
         <Link href="/schools" className="transition hover:text-slate-800">
           教室
@@ -172,16 +172,16 @@ export default async function SchoolDetailPage({
         <span className="text-slate-700">{typedSchool.name}</span>
       </div>
 
-      <section className="relative mb-6 overflow-hidden rounded-[24px] border border-[#e7efeb] bg-[linear-gradient(135deg,#ffffff_0%,#f1fbf5_100%)] px-8 py-8 shadow-[0_18px_36px_rgba(31,41,55,0.04)]">
+      <section className="relative mb-6 overflow-hidden rounded-[24px] border border-[#e7efeb] bg-[linear-gradient(135deg,#ffffff_0%,#f1fbf5_100%)] px-5 py-6 shadow-[0_18px_36px_rgba(31,41,55,0.04)] md:px-8 md:py-8">
         <div className="absolute right-[-80px] top-[-80px] h-60 w-60 rounded-full bg-[radial-gradient(circle,rgba(168,232,200,0.28)_0%,transparent_65%)]" />
         <div className="relative flex flex-wrap items-start justify-between gap-6">
-          <div className="flex items-center gap-5">
+          <div className="flex items-start gap-4 md:items-center md:gap-5">
             <div className="flex h-16 w-16 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#bcefd4] via-[#a4e6c4] to-[#7fddb0] text-[#27463a] shadow-[0_10px_24px_rgba(127,221,176,0.28)]">
               <School className="h-8 w-8" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-5xl font-extrabold tracking-tight text-slate-800">
+                <h1 className="text-3xl font-extrabold tracking-tight text-slate-800 md:text-5xl">
                   {typedSchool.name}
                 </h1>
                 <span className="rounded-full bg-emerald-100 px-4 py-1 text-sm font-bold text-emerald-700">
@@ -200,7 +200,7 @@ export default async function SchoolDetailPage({
             className={buttonVariants({
               variant: "secondary",
               className:
-                "rounded-2xl border border-slate-200 bg-white px-6 text-slate-800 hover:bg-slate-50",
+                "w-full rounded-2xl border border-slate-200 bg-white px-6 text-slate-800 hover:bg-slate-50 sm:w-auto",
             })}
           >
             教室情報を編集
@@ -267,7 +267,7 @@ export default async function SchoolDetailPage({
                 <Users className="h-4 w-4" />
               </span>
               <div>
-                <CardTitle className="text-2xl text-slate-800">
+                <CardTitle className="text-xl text-slate-800 md:text-2xl">
                   講師
                   <span className="ml-3 text-sm font-medium text-slate-400">
                     {teacherCount ?? 0}人
@@ -297,7 +297,7 @@ export default async function SchoolDetailPage({
                 <UserRound className="h-4 w-4" />
               </span>
               <div>
-                <CardTitle className="text-2xl text-slate-800">
+                <CardTitle className="text-xl text-slate-800 md:text-2xl">
                   生徒
                   <span className="ml-3 text-sm font-medium text-slate-400">
                     {studentCount ?? 0}人
@@ -329,7 +329,7 @@ export default async function SchoolDetailPage({
                 <Mail className="h-4 w-4" />
               </span>
               <div>
-                <CardTitle className="text-2xl text-slate-800">招待</CardTitle>
+                <CardTitle className="text-xl text-slate-800 md:text-2xl">招待</CardTitle>
                 <CardDescription className="mt-2 text-sm leading-7 text-slate-500">
                   講師や生徒の招待リンクを発行して管理します。
                 </CardDescription>

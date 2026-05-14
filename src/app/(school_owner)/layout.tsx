@@ -3,6 +3,7 @@ import { Bell, GraduationCap, Home, Settings2, Sprout } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { LogoutForm } from "@/components/auth/logout-form";
+import { SchoolOwnerMobileNav } from "@/components/school-owner/school-owner-mobile-nav";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { canAccessTeacherWorkspace } from "@/lib/auth/teacher-access";
 import { cn } from "@/lib/utils";
@@ -27,9 +28,14 @@ export default async function SchoolOwnerLayout({
   const canSwitchToTeacher = await canAccessTeacherWorkspace(user);
 
   return (
-    <div className="min-h-screen bg-[#22303d] px-5 py-5 text-slate-900">
-      <div className="mx-auto min-h-[calc(100vh-2.5rem)] max-w-[1480px] overflow-hidden rounded-[28px] border border-[#2e3d4d] bg-[#f8fbf9] shadow-[0_32px_90px_rgba(0,0,0,0.32)]">
-        <header className="flex min-h-[72px] items-center justify-between border-b border-emerald-100 bg-white px-7">
+    <div className="min-h-screen bg-[#22303d] text-slate-900 md:px-5 md:py-5">
+      <div className="min-h-screen overflow-hidden bg-[#f8fbf9] shadow-none md:mx-auto md:min-h-[calc(100vh-2.5rem)] md:max-w-[1480px] md:rounded-[28px] md:border md:border-[#2e3d4d] md:shadow-[0_32px_90px_rgba(0,0,0,0.32)]">
+        <SchoolOwnerMobileNav
+          displayName={user.display_name}
+          canSwitchToTeacher={canSwitchToTeacher}
+        />
+
+        <header className="hidden min-h-[72px] items-center justify-between border-b border-emerald-100 bg-white px-7 md:flex">
           <div className="flex items-center gap-10">
             <Link href="/schools" className="flex items-center gap-3">
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#bcefd4] via-[#9fe6c4] to-[#7fddb0] text-[#23463a] shadow-[0_10px_25px_rgba(127,221,176,0.35)]">

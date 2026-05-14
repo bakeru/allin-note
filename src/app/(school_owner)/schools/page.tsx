@@ -35,7 +35,7 @@ export default async function SchoolsPage() {
   if (error) {
     if (error.message.includes("public.schools")) {
       return (
-        <div className="min-h-[700px] px-8 py-8">
+        <div className="min-h-[700px] px-5 py-6 md:px-8 md:py-8">
           <div className="mb-8 border-b border-emerald-50 pb-6">
             <h1 className="text-[2rem] font-extrabold tracking-tight text-slate-800">
               教室
@@ -85,12 +85,12 @@ export default async function SchoolsPage() {
 
   if (!typedSchools.length) {
     return (
-      <div className="min-h-[700px] px-8 py-8">
-        <div className="rounded-[28px] border border-emerald-100 bg-white px-10 py-16 text-center shadow-[0_18px_40px_rgba(31,41,55,0.05)]">
-          <p className="text-sm font-semibold tracking-[0.18em] text-emerald-600">
-            ALLIN NOTE
-          </p>
-          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-slate-800">
+        <div className="min-h-[700px] px-5 py-6 md:px-8 md:py-8">
+          <div className="rounded-[28px] border border-emerald-100 bg-white px-10 py-16 text-center shadow-[0_18px_40px_rgba(31,41,55,0.05)]">
+            <p className="text-sm font-semibold tracking-[0.18em] text-emerald-600">
+              ALLIN NOTE
+            </p>
+          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-800 md:text-4xl">
             {user.display_name}さん、最初の教室を作成しましょう。
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-8 text-slate-500">
@@ -116,7 +116,7 @@ export default async function SchoolsPage() {
   }
 
   return (
-    <div className="min-h-[700px] px-8 py-8">
+        <div className="min-h-[700px] px-5 py-6 md:px-8 md:py-8">
       <div className="mb-8 flex flex-col gap-5 border-b border-emerald-50 pb-6 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-[2rem] font-extrabold tracking-tight text-slate-800">
@@ -139,7 +139,7 @@ export default async function SchoolsPage() {
         </Link>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid gap-4 md:gap-5 xl:grid-cols-2">
         {typedSchools.map((school) => {
           const counts = countsBySchool.get(school.id) ?? {
             teacherCount: 0,
@@ -159,7 +159,7 @@ export default async function SchoolsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <h2 className="text-4xl font-extrabold tracking-tight text-slate-800">
+                      <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 md:text-4xl">
                         {school.name}
                       </h2>
                       <p className="mt-1 text-sm text-slate-400">
@@ -183,7 +183,7 @@ export default async function SchoolsPage() {
                     <p className="text-xs font-semibold text-slate-500">
                       {item.label}
                     </p>
-                    <p className="mt-2 text-[2rem] font-extrabold tracking-tight text-slate-700">
+                    <p className="mt-2 text-2xl font-extrabold tracking-tight text-slate-700 md:text-[2rem]">
                       {item.value}
                       <span className="ml-1 text-sm font-semibold text-slate-400">
                         {item.unit}
@@ -206,7 +206,7 @@ export default async function SchoolsPage() {
         <Link
           href="/schools/new"
           className={cn(
-            "flex min-h-[286px] flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-[#dfe9e4] bg-transparent text-center text-slate-500 transition hover:border-emerald-200 hover:bg-[#f5fbf8] hover:text-emerald-700"
+            "flex min-h-[220px] flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-[#dfe9e4] bg-transparent px-4 text-center text-slate-500 transition hover:border-emerald-200 hover:bg-[#f5fbf8] hover:text-emerald-700 md:min-h-[286px]"
           )}
         >
           <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500">

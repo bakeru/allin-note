@@ -13,7 +13,7 @@ export default async function SchoolOwnerSettingsPage() {
   }
 
   return (
-    <div className="flex min-h-[720px] items-center justify-center bg-[rgba(15,31,46,0.08)] px-8 py-10">
+    <div className="flex min-h-[calc(100vh-68px)] items-start justify-center bg-[rgba(15,31,46,0.08)] px-4 py-6 md:min-h-[720px] md:items-center md:px-8 md:py-10">
       <AvatarSettingsCard displayName={user.display_name} />
     </div>
   );
