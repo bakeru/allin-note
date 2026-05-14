@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { School2 } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { LogoutForm } from "@/components/auth/logout-form";
@@ -44,6 +45,18 @@ export default async function TeacherLayout({
             </nav>
           </div>
           <div className="flex items-center gap-2">
+            {user.role === "school_owner" ? (
+              <Link
+                href="/schools"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                )}
+              >
+                <School2 className="mr-1 h-4 w-4" />
+                教室画面へ
+              </Link>
+            ) : null}
             <p className="text-sm text-neutral-600">{user.display_name}</p>
             <LogoutForm className="text-neutral-600" />
           </div>

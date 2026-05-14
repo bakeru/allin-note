@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Bell, Home, Settings2, Sprout } from "lucide-react";
+import { Bell, GraduationCap, Home, Settings2, Sprout } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { LogoutForm } from "@/components/auth/logout-form";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { canAccessTeacherWorkspace } from "@/lib/auth/teacher-access";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -22,6 +23,8 @@ export default async function SchoolOwnerLayout({
   if (!user || user.role !== "school_owner") {
     redirect("/");
   }
+
+  const canSwitchToTeacher = await canAccessTeacherWorkspace(user);
 
   return (
     <div className="min-h-screen bg-[#22303d] px-5 py-5 text-slate-900">
@@ -64,6 +67,15 @@ export default async function SchoolOwnerLayout({
           </div>
 
           <div className="flex items-center gap-3">
+            {canSwitchToTeacher ? (
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:-translate-y-0.5 hover:bg-emerald-100 hover:text-emerald-800"
+              >
+                <GraduationCap className="h-4 w-4" />
+                講師画面へ
+              </Link>
+            ) : null}
             <button
               type="button"
               className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:bg-emerald-50 hover:text-emerald-700"
