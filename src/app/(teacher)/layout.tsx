@@ -3,8 +3,10 @@ import { School2 } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { LogoutForm } from "@/components/auth/logout-form";
+import { TeacherMobileShell } from "@/components/teacher/teacher-mobile-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { getTeacherWorkspaceUser } from "@/lib/auth/teacher-access";
+import { findTodayReservations } from "@/lib/reservations/find-current";
 import { cn } from "@/lib/utils";
 
 export default async function TeacherLayout({
@@ -18,9 +20,14 @@ export default async function TeacherLayout({
     redirect("/");
   }
 
+  const todayReservations = await findTodayReservations(user.id);
+  const todayReservationCount = todayReservations.filter(
+    (reservation) => reservation.status !== "completed"
+  ).length;
+
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-950">
-      <header className="border-b border-neutral-200 bg-white">
+    <div className="min-h-screen bg-[#f7faf8] text-neutral-950">
+      <header className="hidden border-b border-neutral-200 bg-white md:block">
         <div className="mx-auto flex min-h-16 max-w-5xl flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <p className="text-lg font-semibold">AllIn Note</p>
@@ -62,7 +69,9 @@ export default async function TeacherLayout({
           </div>
         </div>
       </header>
-      <main>{children}</main>
+      <TeacherMobileShell todayReservationCount={todayReservationCount}>
+        {children}
+      </TeacherMobileShell>
     </div>
   );
 }

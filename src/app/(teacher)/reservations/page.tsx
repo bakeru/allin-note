@@ -5,6 +5,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { CancelReservationButton } from "@/components/reservations/cancel-reservation-button";
 import { ReservationStatusBadge } from "@/components/reservations/reservation-status-badge";
 import {
+  TeacherMobileLessons,
+  type TeacherLessonNote,
+  type TeacherLessonReservation,
+} from "@/components/teacher/teacher-mobile-lessons";
+import {
   Card,
   CardContent,
   CardHeader,
@@ -15,6 +20,35 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+type LessonRow = {
+  id: string;
+  recorded_at: string;
+  sent_at?: string | null;
+  teacher_message?: string | null;
+  student?:
+    | {
+        profile:
+          | {
+              display_name: string;
+            }
+          | Array<{
+              display_name: string;
+            }>
+          | null;
+      }
+    | Array<{
+        profile:
+          | {
+              display_name: string;
+            }
+          | Array<{
+              display_name: string;
+            }>
+          | null;
+      }>
+    | null;
+};
 
 type ReservationRow = {
   id: string;
@@ -73,6 +107,15 @@ const extractName = (reservation: ReservationRow) => {
   return profile?.display_name ?? "生徒";
 };
 
+const extractStudentNameFromRelation = (studentRelation: LessonRow["student"]) => {
+  const student = Array.isArray(studentRelation) ? studentRelation[0] : studentRelation;
+  const profile = Array.isArray(student?.profile)
+    ? student.profile[0]
+    : student?.profile;
+
+  return profile?.display_name ?? "生徒";
+};
+
 const extractLocationName = (reservation: ReservationRow) => {
   const location = Array.isArray(reservation.location)
     ? reservation.location[0]
@@ -80,6 +123,26 @@ const extractLocationName = (reservation: ReservationRow) => {
 
   return location?.name ?? "";
 };
+
+const toLessonNote = (lesson: LessonRow): TeacherLessonNote => ({
+  id: lesson.id,
+  recordedAt: lesson.recorded_at,
+  sentAt: lesson.sent_at ?? null,
+  teacherMessage: lesson.teacher_message ?? null,
+  studentName: extractStudentNameFromRelation(lesson.student),
+});
+
+const toLessonReservation = (
+  reservation: ReservationRow
+): TeacherLessonReservation => ({
+  id: reservation.id,
+  scheduledAt: reservation.scheduled_at,
+  durationMinutes: reservation.duration_minutes ?? 60,
+  status: reservation.status ?? "scheduled",
+  notes: reservation.notes ?? null,
+  locationName: extractLocationName(reservation),
+  studentName: extractName(reservation),
+});
 
 function ReservationCard({ reservation }: { reservation: ReservationRow }) {
   const status = reservation.status ?? "scheduled";
@@ -146,8 +209,12 @@ export default async function ReservationsPage() {
   const supabase = createServiceClient();
   const nowIso = new Date().toISOString();
 
-  const [{ data: upcomingReservations, error: upcomingError }, { data: pastReservations, error: pastError }] =
-    await Promise.all([
+  const [
+    { data: upcomingReservations, error: upcomingError },
+    { data: pastReservations, error: pastError },
+    { data: unsentLessons, error: unsentLessonsError },
+    { data: sentLessons, error: sentLessonsError },
+  ] = await Promise.all([
       supabase
         .from("reservations")
         .select(
@@ -187,6 +254,35 @@ export default async function ReservationsPage() {
         .lt("scheduled_at", nowIso)
         .order("scheduled_at", { ascending: false })
         .limit(10),
+      supabase
+        .from("lessons")
+        .select(
+          `
+            *,
+            student:students!inner(
+              profile:profiles!user_id(display_name)
+            )
+          `
+        )
+        .eq("teacher_id", user.id)
+        .eq("status", "ready")
+        .is("sent_at", null)
+        .order("recorded_at", { ascending: false }),
+      supabase
+        .from("lessons")
+        .select(
+          `
+            *,
+            student:students!inner(
+              profile:profiles!user_id(display_name)
+            )
+          `
+        )
+        .eq("teacher_id", user.id)
+        .eq("status", "ready")
+        .not("sent_at", "is", null)
+        .order("sent_at", { ascending: false })
+        .limit(10),
     ]);
 
   if (upcomingError) {
@@ -224,8 +320,32 @@ export default async function ReservationsPage() {
     throw new Error(pastError.message);
   }
 
+  if (unsentLessonsError) {
+    throw new Error(unsentLessonsError.message);
+  }
+
+  if (sentLessonsError) {
+    throw new Error(sentLessonsError.message);
+  }
+
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col gap-8 px-5 py-8">
+    <>
+      <TeacherMobileLessons
+        upcomingReservations={(upcomingReservations ?? []).map((reservation) =>
+          toLessonReservation(reservation as ReservationRow)
+        )}
+        pastReservations={(pastReservations ?? []).map((reservation) =>
+          toLessonReservation(reservation as ReservationRow)
+        )}
+        unsentLessons={(unsentLessons ?? []).map((lesson) =>
+          toLessonNote(lesson as LessonRow)
+        )}
+        sentLessons={(sentLessons ?? []).map((lesson) =>
+          toLessonNote(lesson as LessonRow)
+        )}
+      />
+
+      <div className="mx-auto hidden min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col gap-8 px-5 py-8 md:flex">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold text-neutral-950">予約</h1>
@@ -277,6 +397,7 @@ export default async function ReservationsPage() {
           </Card>
         )}
       </section>
-    </div>
+      </div>
+    </>
   );
 }
