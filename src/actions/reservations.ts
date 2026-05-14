@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getTeacherWorkspaceUser } from "@/lib/auth/teacher-access";
 import { sendEmail } from "@/lib/email/send";
 import { reservationCancelledEmail } from "@/lib/email/templates/reservation-cancelled";
 import { reservationConfirmedEmail } from "@/lib/email/templates/reservation-confirmed";
@@ -70,10 +71,10 @@ const parseReservationPayload = (formData: FormData) => {
 };
 
 const getTeacherUser = async () => {
-  const user = await getCurrentUser();
+  const user = await getTeacherWorkspaceUser();
 
-  if (!user || user.role !== "teacher") {
-    throw new Error("講師としてログインしてください。");
+  if (!user) {
+    throw new Error("講師ページにアクセスできるアカウントでログインしてください。");
   }
 
   return user;
@@ -238,7 +239,12 @@ async function sendReservationCancelledEmails(
 export async function createReservationByPayload(payload: ReservationPayload) {
   const user = await getCurrentUser();
 
-  if (!user || (user.role !== "teacher" && user.role !== "student")) {
+  if (
+    !user ||
+    (user.role !== "teacher" &&
+      user.role !== "student" &&
+      user.role !== "school_owner")
+  ) {
     throw new Error("予約を作成できるユーザーではありません。");
   }
 
@@ -260,26 +266,7 @@ export async function createReservationByPayload(payload: ReservationPayload) {
     throw new Error("この生徒には予約を作成できません。");
   }
 
-  if (user.role === "teacher") {
-    if (payload.teacherId !== user.id || student.teacher_id !== user.id) {
-      throw new Error("自分の担当生徒のみ予約できます。");
-    }
-
-    const { data: schoolTeacher, error: membershipError } = await supabase
-      .from("school_teachers")
-      .select("id")
-      .eq("school_id", normalized.schoolId)
-      .eq("teacher_id", user.id)
-      .single();
-
-    if (membershipError) {
-      throw new Error(membershipError.message);
-    }
-
-    if (!schoolTeacher) {
-      throw new Error("この教室の予約は作成できません。");
-    }
-  } else {
+  if (user.role === "student") {
     if (student.user_id !== user.id) {
       throw new Error("自分の予約のみ作成できます。");
     }
@@ -298,6 +285,25 @@ export async function createReservationByPayload(payload: ReservationPayload) {
 
     if (!selectedTeacherMembership) {
       throw new Error("この講師では予約できません。");
+    }
+  } else {
+    if (payload.teacherId !== user.id || student.teacher_id !== user.id) {
+      throw new Error("自分の担当生徒のみ予約できます。");
+    }
+
+    const { data: schoolTeacher, error: membershipError } = await supabase
+      .from("school_teachers")
+      .select("id")
+      .eq("school_id", normalized.schoolId)
+      .eq("teacher_id", user.id)
+      .single();
+
+    if (membershipError) {
+      throw new Error(membershipError.message);
+    }
+
+    if (!schoolTeacher) {
+      throw new Error("この教室の予約は作成できません。");
     }
   }
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getTeacherWorkspaceUser } from "@/lib/auth/teacher-access";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -29,9 +29,9 @@ const extractName = (student: StudentRow) => {
 };
 
 export default async function SelectStudentPage() {
-  const user = await getCurrentUser();
+  const user = await getTeacherWorkspaceUser();
 
-  if (!user || user.role !== "teacher") {
+  if (!user) {
     redirect("/");
   }
 

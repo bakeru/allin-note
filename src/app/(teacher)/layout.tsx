@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { LogoutForm } from "@/components/auth/logout-form";
 import { buttonVariants } from "@/components/ui/button";
-import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getTeacherWorkspaceUser } from "@/lib/auth/teacher-access";
 import { cn } from "@/lib/utils";
 
 export default async function TeacherLayout({
@@ -11,9 +11,9 @@ export default async function TeacherLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await getCurrentUser();
+  const user = await getTeacherWorkspaceUser();
 
-  if (!user || user.role !== "teacher") {
+  if (!user) {
     redirect("/");
   }
 

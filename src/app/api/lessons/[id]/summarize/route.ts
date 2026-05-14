@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { generateBothSummaries } from "@/lib/ai/summarizer";
-import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getTeacherWorkspaceUser } from "@/lib/auth/teacher-access";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
@@ -15,9 +15,9 @@ type RouteContext = {
 
 export async function POST(_request: NextRequest, { params }: RouteContext) {
   const { id: lessonId } = await params;
-  const user = await getCurrentUser();
+  const user = await getTeacherWorkspaceUser();
 
-  if (!user || user.role !== "teacher") {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -10,15 +10,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getTeacherWorkspaceUser } from "@/lib/auth/teacher-access";
 import { findTodayReservations } from "@/lib/reservations/find-current";
 
 export const dynamic = "force-dynamic";
 
 export default async function RecordPage() {
-  const user = await getCurrentUser();
+  const user = await getTeacherWorkspaceUser();
 
-  if (!user || user.role !== "teacher") {
+  if (!user) {
     redirect("/");
   }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 
-import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getTeacherWorkspaceUser } from "@/lib/auth/teacher-access";
 import { deleteAudio, uploadAudio } from "@/lib/storage/r2";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -29,9 +29,9 @@ const parseDurationSeconds = (value: FormDataEntryValue | null) => {
 };
 
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser();
+  const user = await getTeacherWorkspaceUser();
 
-  if (!user || user.role !== "teacher") {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

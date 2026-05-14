@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { canAccessTeacherWorkspace } from "@/lib/auth/teacher-access";
 import { getAvailableTimeSlots } from "@/lib/reservations/get-available-slots";
 import { getOrBackfillStudentEnrollment } from "@/lib/students/get-active-student-enrollment";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -28,10 +29,6 @@ export async function GET(request: NextRequest) {
       { error: "必要なパラメータが不足しています。" },
       { status: 400 }
     );
-  }
-
-  if (user.role === "teacher" && user.id !== teacherId) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   if (user.role === "student") {
@@ -64,6 +61,14 @@ export async function GET(request: NextRequest) {
         { error: "この講師では予約できません。" },
         { status: 403 }
       );
+    }
+  }
+
+  if (user.role !== "student") {
+    const canUseTeacherWorkspace = await canAccessTeacherWorkspace(user);
+
+    if (!canUseTeacherWorkspace || user.id !== teacherId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }
 

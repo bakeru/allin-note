@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { getTeacherWorkspaceUser } from "@/lib/auth/teacher-access";
 import { sendEmail } from "@/lib/email/send";
 import { lessonNoteEmail } from "@/lib/email/templates/lesson-note";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -44,9 +44,9 @@ export async function saveTeacherMessage(
   message: string,
   shouldSend: boolean
 ) {
-  const user = await getCurrentUser();
+  const user = await getTeacherWorkspaceUser();
 
-  if (!user || user.role !== "teacher") {
+  if (!user) {
     throw new Error("Unauthorized");
   }
 
@@ -164,9 +164,9 @@ export async function updateStudentSummary(
   lessonId: string,
   newSummary: StudentSummary
 ) {
-  const user = await getCurrentUser();
+  const user = await getTeacherWorkspaceUser();
 
-  if (!user || user.role !== "teacher") {
+  if (!user) {
     throw new Error("Unauthorized");
   }
 
