@@ -11,6 +11,7 @@ import { teacherInvitationEmail } from "@/lib/email/templates/teacher-invitation
 import { createServerSupabaseClient } from "@/lib/supabase/auth";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buildAppUrl } from "@/lib/utils/app-url";
+import type { AuthActionState } from "@/components/auth/auth-action-state";
 
 type InvitationRole = "teacher" | "student";
 type TeacherSchoolRole = "owner" | "head_teacher" | "teacher";
@@ -114,8 +115,16 @@ async function createProfileForUser(params: {
   }
 }
 
-export async function signUpAction(formData: FormData) {
-  ensureProductionAuth();
+export async function signUpAction(
+  _prevState: AuthActionState | void,
+  formData: FormData
+): Promise<AuthActionState | void> {
+  if (
+    process.env.NEXT_PUBLIC_AUTH_MODE === "mock" ||
+    process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true"
+  ) {
+    return { error: "本番認証モードに切り替えてから登録してください。" };
+  }
 
   const email = formData.get("email");
   const password = formData.get("password");
@@ -123,15 +132,15 @@ export async function signUpAction(formData: FormData) {
   const role = formData.get("role");
 
   if (typeof email !== "string" || !email.trim()) {
-    throw new Error("メールアドレスを入力してください。");
+    return { error: "メールアドレスを入力してください。" };
   }
 
   if (typeof password !== "string" || password.length < 8) {
-    throw new Error("パスワードは8文字以上で入力してください。");
+    return { error: "パスワードは8文字以上で入力してください。" };
   }
 
   if (typeof displayName !== "string" || !displayName.trim()) {
-    throw new Error("お名前を入力してください。");
+    return { error: "お名前を入力してください。" };
   }
 
   if (
@@ -139,11 +148,11 @@ export async function signUpAction(formData: FormData) {
     role !== "teacher" &&
     role !== "student"
   ) {
-    throw new Error("ロールを選択してください。");
+    return { error: "ロールを選択してください。" };
   }
 
   if (role !== "school_owner") {
-    throw new Error("講師・生徒は招待リンクから登録してください。");
+    return { error: "講師・生徒は招待リンクから登録してください。" };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -153,11 +162,11 @@ export async function signUpAction(formData: FormData) {
   });
 
   if (error) {
-    throw new Error(error.message);
+    return { error: error.message };
   }
 
   if (!data.user?.id || !data.user.email) {
-    throw new Error("ユーザー作成に失敗しました。");
+    return { error: "ユーザー作成に失敗しました。" };
   }
 
   await createProfileForUser({
@@ -171,19 +180,27 @@ export async function signUpAction(formData: FormData) {
   redirect("/schools");
 }
 
-export async function signInAction(formData: FormData) {
-  ensureProductionAuth();
+export async function signInAction(
+  _prevState: AuthActionState | void,
+  formData: FormData
+): Promise<AuthActionState | void> {
+  if (
+    process.env.NEXT_PUBLIC_AUTH_MODE === "mock" ||
+    process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true"
+  ) {
+    return { error: "本番認証モードに切り替えてからログインしてください。" };
+  }
 
   const email = formData.get("email");
   const password = formData.get("password");
   const redirectTo = formData.get("redirect_to");
 
   if (typeof email !== "string" || !email.trim()) {
-    throw new Error("メールアドレスを入力してください。");
+    return { error: "メールアドレスを入力してください。" };
   }
 
   if (typeof password !== "string" || !password) {
-    throw new Error("パスワードを入力してください。");
+    return { error: "パスワードを入力してください。" };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -193,7 +210,11 @@ export async function signInAction(formData: FormData) {
   });
 
   if (error) {
-    throw new Error(error.message);
+    if (error.message === "Invalid login credentials") {
+      return { error: "メールアドレスまたはパスワードが正しくありません。" };
+    }
+
+    return { error: error.message };
   }
 
   if (typeof redirectTo === "string" && redirectTo.startsWith("/")) {

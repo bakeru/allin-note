@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { signInAction } from "@/actions/auth";
-import { buttonVariants } from "@/components/ui/button";
+import { LoginForm } from "@/components/auth/login-form";
 import {
   Card,
   CardContent,
@@ -10,8 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getHomePathForRole } from "@/lib/auth/navigation";
 
@@ -34,31 +31,22 @@ export default async function LoginPage({
       : "";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-950 px-6 py-10">
-      <Card className="w-full max-w-md rounded-lg border-0 bg-white ring-1 ring-neutral-200">
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(168,232,200,0.28),_transparent_40%),linear-gradient(180deg,_#f8fcfa_0%,_#eef7f2_100%)] px-6 py-10">
+      <Card className="w-full max-w-md rounded-[28px] border border-emerald-100/70 bg-white/95 shadow-[0_20px_60px_rgba(15,31,46,0.08)] backdrop-blur">
         <CardHeader>
-          <CardTitle className="text-2xl">ログイン</CardTitle>
+          <div className="mb-3 inline-flex w-fit items-center gap-3 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+            <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-emerald-200 text-slate-900">
+              AI
+            </span>
+            AllIn Note
+          </div>
+          <CardTitle className="text-2xl text-slate-950">ログイン</CardTitle>
           <CardDescription>
             既存のアカウントでAllIn Noteに入ります。
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={signInAction} className="space-y-5">
-            {redirectTo ? (
-              <input type="hidden" name="redirect_to" value={redirectTo} />
-            ) : null}
-            <div className="space-y-2">
-              <Label htmlFor="email">メールアドレス</Label>
-              <Input id="email" name="email" type="email" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">パスワード</Label>
-              <Input id="password" name="password" type="password" required />
-            </div>
-            <button type="submit" className={buttonVariants({ className: "w-full" })}>
-              ログイン
-            </button>
-          </form>
+          <LoginForm redirectTo={redirectTo} />
           <div className="mt-6 space-y-2 text-sm text-neutral-600">
             <p>パスワードを忘れた方は、いったん管理者にご相談ください。</p>
             <Link
