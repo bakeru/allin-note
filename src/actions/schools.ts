@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/service";
+import type { InlineFormState } from "@/components/shared/action-form-state";
 
 export async function createSchoolAction(
   name: string,
@@ -193,22 +194,30 @@ export async function removeTeacherMembershipAction(formData: FormData) {
   revalidatePath(`/schools/${schoolId}`);
 }
 
-export async function createSchoolFormAction(formData: FormData) {
+export async function createSchoolFormAction(
+  _prevState: InlineFormState | void,
+  formData: FormData
+): Promise<InlineFormState | void> {
   const name = formData.get("name");
   const description = formData.get("description");
   const alsoBeATeacher = formData.get("also_be_a_teacher");
 
   if (typeof name !== "string" || !name.trim()) {
-    throw new Error("教室名を入力してください。");
+    return { error: "教室名を入力してください。" };
   }
+  try {
+    const school = await createSchoolAction(
+      name.trim(),
+      typeof description === "string" && description.trim()
+        ? description.trim()
+        : null,
+      alsoBeATeacher === "on"
+    );
 
-  const school = await createSchoolAction(
-    name.trim(),
-    typeof description === "string" && description.trim()
-      ? description.trim()
-      : null,
-    alsoBeATeacher === "on"
-  );
-
-  redirect(`/schools/${school.id}`);
+    redirect(`/schools/${school.id}`);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "教室の作成に失敗しました。",
+    };
+  }
 }

@@ -127,20 +127,31 @@ export default async function InvitationsPage({
         <div className="space-y-2">
           <Link
             href={`/schools/${schoolId}`}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({ variant: "ghost", size: "sm", className: "rounded-xl text-slate-600" })}
           >
             教室詳細へ戻る
           </Link>
+          <div className="inline-flex items-center gap-3 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+            <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-emerald-200 text-slate-900">
+              招
+            </span>
+            Invitations
+          </div>
           <h1 className="text-3xl font-semibold text-neutral-950">招待管理</h1>
           <p className="text-sm text-neutral-600">{school.name}の招待一覧です。</p>
         </div>
-        <Link href={`/schools/${schoolId}/invitations/new`} className={buttonVariants()}>
+        <Link
+          href={`/schools/${schoolId}/invitations/new`}
+          className={buttonVariants({
+            className: "rounded-xl bg-emerald-500 text-white hover:bg-emerald-400 hover:text-white",
+          })}
+        >
           + 新しい招待を作成
         </Link>
       </div>
 
       {createdUrl ? (
-        <Card className="rounded-lg border-0 bg-emerald-50 ring-1 ring-emerald-200">
+        <Card className="rounded-[24px] border border-emerald-200 bg-emerald-50">
           <CardHeader>
             <CardTitle className="text-xl text-emerald-950">
               招待リンクを発行しました
@@ -171,7 +182,7 @@ export default async function InvitationsPage({
               return (
                 <Card
                   key={invitation.id}
-                  className="rounded-lg border-0 bg-white ring-1 ring-neutral-200"
+                  className="rounded-[24px] border border-emerald-100/70 bg-white shadow-[0_16px_40px_rgba(15,31,46,0.05)]"
                 >
                   <CardHeader>
                     <CardTitle className="text-lg text-neutral-950">
@@ -201,7 +212,7 @@ export default async function InvitationsPage({
             })}
           </div>
         ) : (
-          <Card className="rounded-lg border-0 bg-white ring-1 ring-neutral-200">
+          <Card className="rounded-[24px] border border-emerald-100/70 bg-white">
             <CardContent className="py-8 text-sm text-neutral-600">
               今月の招待はまだありません。
             </CardContent>

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/service";
+import type { InlineFormState } from "@/components/shared/action-form-state";
 
 const ensureSchoolOwner = async () => {
   const user = await getCurrentUser();
@@ -37,66 +38,84 @@ const ensureSchoolOwnership = async (schoolId: string, ownerId: string) => {
   return supabase;
 };
 
-export async function createAreaAction(formData: FormData) {
-  const user = await ensureSchoolOwner();
-  const schoolId = formData.get("school_id");
-  const name = formData.get("name");
+export async function createAreaAction(
+  _prevState: InlineFormState | void,
+  formData: FormData
+): Promise<InlineFormState | void> {
+  try {
+    const user = await ensureSchoolOwner();
+    const schoolId = formData.get("school_id");
+    const name = formData.get("name");
 
-  if (typeof schoolId !== "string" || !schoolId) {
-    throw new Error("教室IDが見つかりません。");
+    if (typeof schoolId !== "string" || !schoolId) {
+      return { error: "教室IDが見つかりません。" };
+    }
+
+    if (typeof name !== "string" || !name.trim()) {
+      return { error: "エリア名を入力してください。" };
+    }
+
+    const supabase = await ensureSchoolOwnership(schoolId, user.id);
+    const { error } = await supabase.from("areas").insert({
+      school_id: schoolId,
+      name: name.trim(),
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath(`/schools/${schoolId}`);
+    redirect(`/schools/${schoolId}`);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "エリアの作成に失敗しました。",
+    };
   }
-
-  if (typeof name !== "string" || !name.trim()) {
-    throw new Error("エリア名を入力してください。");
-  }
-
-  const supabase = await ensureSchoolOwnership(schoolId, user.id);
-  const { error } = await supabase.from("areas").insert({
-    school_id: schoolId,
-    name: name.trim(),
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  revalidatePath(`/schools/${schoolId}`);
-  redirect(`/schools/${schoolId}`);
 }
 
-export async function updateAreaAction(formData: FormData) {
-  const user = await ensureSchoolOwner();
-  const schoolId = formData.get("school_id");
-  const areaId = formData.get("area_id");
-  const name = formData.get("name");
+export async function updateAreaAction(
+  _prevState: InlineFormState | void,
+  formData: FormData
+): Promise<InlineFormState | void> {
+  try {
+    const user = await ensureSchoolOwner();
+    const schoolId = formData.get("school_id");
+    const areaId = formData.get("area_id");
+    const name = formData.get("name");
 
-  if (
-    typeof schoolId !== "string" ||
-    !schoolId ||
-    typeof areaId !== "string" ||
-    !areaId
-  ) {
-    throw new Error("エリア情報が不足しています。");
+    if (
+      typeof schoolId !== "string" ||
+      !schoolId ||
+      typeof areaId !== "string" ||
+      !areaId
+    ) {
+      return { error: "エリア情報が不足しています。" };
+    }
+
+    if (typeof name !== "string" || !name.trim()) {
+      return { error: "エリア名を入力してください。" };
+    }
+
+    const supabase = await ensureSchoolOwnership(schoolId, user.id);
+    const { error } = await supabase
+      .from("areas")
+      .update({ name: name.trim() })
+      .eq("id", areaId)
+      .eq("school_id", schoolId)
+      .is("deleted_at", null);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath(`/schools/${schoolId}`);
+    redirect(`/schools/${schoolId}`);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "エリアの更新に失敗しました。",
+    };
   }
-
-  if (typeof name !== "string" || !name.trim()) {
-    throw new Error("エリア名を入力してください。");
-  }
-
-  const supabase = await ensureSchoolOwnership(schoolId, user.id);
-  const { error } = await supabase
-    .from("areas")
-    .update({ name: name.trim() })
-    .eq("id", areaId)
-    .eq("school_id", schoolId)
-    .is("deleted_at", null);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  revalidatePath(`/schools/${schoolId}`);
-  redirect(`/schools/${schoolId}`);
 }
 
 export async function deleteAreaAction(formData: FormData) {
@@ -128,90 +147,108 @@ export async function deleteAreaAction(formData: FormData) {
   revalidatePath(`/schools/${schoolId}`);
 }
 
-export async function createLocationAction(formData: FormData) {
-  const user = await ensureSchoolOwner();
-  const schoolId = formData.get("school_id");
-  const name = formData.get("name");
-  const type = formData.get("type");
-  const areaId = formData.get("area_id");
-  const notes = formData.get("notes");
+export async function createLocationAction(
+  _prevState: InlineFormState | void,
+  formData: FormData
+): Promise<InlineFormState | void> {
+  try {
+    const user = await ensureSchoolOwner();
+    const schoolId = formData.get("school_id");
+    const name = formData.get("name");
+    const type = formData.get("type");
+    const areaId = formData.get("area_id");
+    const notes = formData.get("notes");
 
-  if (typeof schoolId !== "string" || !schoolId) {
-    throw new Error("教室IDが見つかりません。");
-  }
+    if (typeof schoolId !== "string" || !schoolId) {
+      return { error: "教室IDが見つかりません。" };
+    }
 
-  if (typeof name !== "string" || !name.trim()) {
-    throw new Error("場所名を入力してください。");
-  }
+    if (typeof name !== "string" || !name.trim()) {
+      return { error: "場所名を入力してください。" };
+    }
 
-  const validTypes = new Set(["room", "home_visit", "external"]);
-  if (typeof type !== "string" || !validTypes.has(type)) {
-    throw new Error("場所タイプが不正です。");
-  }
+    const validTypes = new Set(["room", "home_visit", "external"]);
+    if (typeof type !== "string" || !validTypes.has(type)) {
+      return { error: "場所タイプが不正です。" };
+    }
 
-  const supabase = await ensureSchoolOwnership(schoolId, user.id);
-  const { error } = await supabase.from("locations").insert({
-    school_id: schoolId,
-    name: name.trim(),
-    type,
-    area_id: typeof areaId === "string" && areaId ? areaId : null,
-    notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  revalidatePath(`/schools/${schoolId}`);
-  redirect(`/schools/${schoolId}`);
-}
-
-export async function updateLocationAction(formData: FormData) {
-  const user = await ensureSchoolOwner();
-  const schoolId = formData.get("school_id");
-  const locationId = formData.get("location_id");
-  const name = formData.get("name");
-  const type = formData.get("type");
-  const areaId = formData.get("area_id");
-  const notes = formData.get("notes");
-
-  if (
-    typeof schoolId !== "string" ||
-    !schoolId ||
-    typeof locationId !== "string" ||
-    !locationId
-  ) {
-    throw new Error("場所情報が不足しています。");
-  }
-
-  if (typeof name !== "string" || !name.trim()) {
-    throw new Error("場所名を入力してください。");
-  }
-
-  const validTypes = new Set(["room", "home_visit", "external"]);
-  if (typeof type !== "string" || !validTypes.has(type)) {
-    throw new Error("場所タイプが不正です。");
-  }
-
-  const supabase = await ensureSchoolOwnership(schoolId, user.id);
-  const { error } = await supabase
-    .from("locations")
-    .update({
+    const supabase = await ensureSchoolOwnership(schoolId, user.id);
+    const { error } = await supabase.from("locations").insert({
+      school_id: schoolId,
       name: name.trim(),
       type,
       area_id: typeof areaId === "string" && areaId ? areaId : null,
       notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
-    })
-    .eq("id", locationId)
-    .eq("school_id", schoolId)
-    .is("deleted_at", null);
+    });
 
-  if (error) {
-    throw new Error(error.message);
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath(`/schools/${schoolId}`);
+    redirect(`/schools/${schoolId}`);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "場所の作成に失敗しました。",
+    };
   }
+}
 
-  revalidatePath(`/schools/${schoolId}`);
-  redirect(`/schools/${schoolId}`);
+export async function updateLocationAction(
+  _prevState: InlineFormState | void,
+  formData: FormData
+): Promise<InlineFormState | void> {
+  try {
+    const user = await ensureSchoolOwner();
+    const schoolId = formData.get("school_id");
+    const locationId = formData.get("location_id");
+    const name = formData.get("name");
+    const type = formData.get("type");
+    const areaId = formData.get("area_id");
+    const notes = formData.get("notes");
+
+    if (
+      typeof schoolId !== "string" ||
+      !schoolId ||
+      typeof locationId !== "string" ||
+      !locationId
+    ) {
+      return { error: "場所情報が不足しています。" };
+    }
+
+    if (typeof name !== "string" || !name.trim()) {
+      return { error: "場所名を入力してください。" };
+    }
+
+    const validTypes = new Set(["room", "home_visit", "external"]);
+    if (typeof type !== "string" || !validTypes.has(type)) {
+      return { error: "場所タイプが不正です。" };
+    }
+
+    const supabase = await ensureSchoolOwnership(schoolId, user.id);
+    const { error } = await supabase
+      .from("locations")
+      .update({
+        name: name.trim(),
+        type,
+        area_id: typeof areaId === "string" && areaId ? areaId : null,
+        notes: typeof notes === "string" && notes.trim() ? notes.trim() : null,
+      })
+      .eq("id", locationId)
+      .eq("school_id", schoolId)
+      .is("deleted_at", null);
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    revalidatePath(`/schools/${schoolId}`);
+    redirect(`/schools/${schoolId}`);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "場所の更新に失敗しました。",
+    };
+  }
 }
 
 export async function deleteLocationAction(formData: FormData) {

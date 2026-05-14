@@ -101,17 +101,23 @@ export default async function SchoolTeachersPage({
         <div className="space-y-2">
           <Link
             href={`/schools/${schoolId}`}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({ variant: "ghost", size: "sm", className: "rounded-xl text-slate-600" })}
           >
             教室詳細へ戻る
           </Link>
+          <div className="inline-flex items-center gap-3 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+            <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-emerald-200 text-slate-900">
+              講
+            </span>
+            Teachers
+          </div>
           <h1 className="text-3xl font-semibold text-neutral-950">
             {school.name}の講師
           </h1>
         </div>
         <Link
           href={`/schools/${schoolId}/invitations/new`}
-          className={buttonVariants({ variant: "outline" })}
+          className={buttonVariants({ className: "rounded-xl bg-emerald-500 text-white hover:bg-emerald-400 hover:text-white" })}
         >
           講師を招待
         </Link>
@@ -125,13 +131,18 @@ export default async function SchoolTeachersPage({
             return (
               <Card
                 key={teacherLink.id}
-                className="rounded-lg border-0 bg-white ring-1 ring-neutral-200"
+                className="rounded-[24px] border border-emerald-100/70 bg-white shadow-[0_16px_40px_rgba(15,31,46,0.05)]"
               >
-                <CardHeader>
-                  <CardTitle className="text-xl text-neutral-950">
-                    {teacher.displayName}
-                  </CardTitle>
-                  <CardDescription>{teacher.email}</CardDescription>
+                <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 font-semibold text-emerald-700">
+                    {teacher.displayName.slice(0, 1)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-xl text-neutral-950">
+                      {teacher.displayName}
+                    </CardTitle>
+                    <CardDescription>{teacher.email}</CardDescription>
+                  </div>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between text-sm text-neutral-600">
                   <span>役割: {teacherLink.role}</span>
@@ -152,7 +163,7 @@ export default async function SchoolTeachersPage({
           })}
         </div>
       ) : (
-        <Card className="rounded-lg border-0 bg-white ring-1 ring-neutral-200">
+        <Card className="rounded-[24px] border border-emerald-100/70 bg-white">
           <CardContent className="py-10">
             <EmptyState message="まだ所属講師はいません" />
           </CardContent>

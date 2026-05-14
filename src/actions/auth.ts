@@ -12,6 +12,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/auth";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buildAppUrl } from "@/lib/utils/app-url";
 import type { AuthActionState } from "@/components/auth/auth-action-state";
+import type { InlineFormState } from "@/components/shared/action-form-state";
 
 type InvitationRole = "teacher" | "student";
 type TeacherSchoolRole = "owner" | "head_teacher" | "teacher";
@@ -243,133 +244,142 @@ export async function signOutAction() {
   redirect("/login");
 }
 
-export async function createInvitationAction(formData: FormData) {
-  const user = await getCurrentUser();
+export async function createInvitationAction(
+  _prevState: InlineFormState | void,
+  formData: FormData
+): Promise<InlineFormState | void> {
+  try {
+    const user = await getCurrentUser();
 
-  if (!user || user.role !== "school_owner") {
-    throw new Error("Unauthorized");
-  }
-
-  const schoolId = formData.get("school_id");
-  const email = formData.get("email");
-  const role = formData.get("role");
-  const teacherRole = formData.get("teacher_role");
-  const studentName = formData.get("student_name");
-  const studentTeacherId = formData.get("student_teacher_id");
-  const defaultLocationId = formData.get("default_location_id");
-
-  if (typeof schoolId !== "string" || !schoolId) {
-    throw new Error("教室IDが見つかりません。");
-  }
-
-  if (typeof email !== "string" || !email.trim()) {
-    throw new Error("メールアドレスを入力してください。");
-  }
-
-  if (role !== "teacher" && role !== "student") {
-    throw new Error("招待タイプを選択してください。");
-  }
-
-  const supabase = createServiceClient();
-  const { data: school, error: schoolError } = await supabase
-    .from("schools")
-    .select("id, name")
-    .eq("id", schoolId)
-    .eq("owner_id", user.id)
-    .is("deleted_at", null)
-    .single();
-
-  if (schoolError) {
-    throw new Error(schoolError.message);
-  }
-
-  if (!school) {
-    throw new Error("この教室には招待を作成できません。");
-  }
-
-  const insertPayload: {
-    school_id: string;
-    email: string;
-    role: InvitationRole;
-    invited_by: string;
-    teacher_role?: TeacherSchoolRole | null;
-    student_name?: string | null;
-    student_teacher_id?: string | null;
-    default_location_id?: string | null;
-  } = {
-    school_id: schoolId,
-    email: email.trim(),
-    role,
-    invited_by: user.id,
-  };
-
-  if (role === "teacher") {
-    insertPayload.teacher_role =
-      teacherRole === "owner" ||
-      teacherRole === "head_teacher" ||
-      teacherRole === "teacher"
-        ? teacherRole
-        : "teacher";
-  } else {
-    if (typeof studentTeacherId !== "string" || !studentTeacherId) {
-      throw new Error("生徒招待では担当講師を選択してください。");
+    if (!user || user.role !== "school_owner") {
+      return { error: "この操作を実行する権限がありません。" };
     }
 
-    insertPayload.student_name =
-      typeof studentName === "string" && studentName.trim()
-        ? studentName.trim()
-        : null;
-    insertPayload.student_teacher_id = studentTeacherId;
-    insertPayload.default_location_id =
-      typeof defaultLocationId === "string" && defaultLocationId
-        ? defaultLocationId
-        : null;
+    const schoolId = formData.get("school_id");
+    const email = formData.get("email");
+    const role = formData.get("role");
+    const teacherRole = formData.get("teacher_role");
+    const studentName = formData.get("student_name");
+    const studentTeacherId = formData.get("student_teacher_id");
+    const defaultLocationId = formData.get("default_location_id");
+
+    if (typeof schoolId !== "string" || !schoolId) {
+      return { error: "教室IDが見つかりません。" };
+    }
+
+    if (typeof email !== "string" || !email.trim()) {
+      return { error: "メールアドレスを入力してください。" };
+    }
+
+    if (role !== "teacher" && role !== "student") {
+      return { error: "招待タイプを選択してください。" };
+    }
+
+    const supabase = createServiceClient();
+    const { data: school, error: schoolError } = await supabase
+      .from("schools")
+      .select("id, name")
+      .eq("id", schoolId)
+      .eq("owner_id", user.id)
+      .is("deleted_at", null)
+      .single();
+
+    if (schoolError) {
+      return { error: schoolError.message };
+    }
+
+    if (!school) {
+      return { error: "この教室には招待を作成できません。" };
+    }
+
+    const insertPayload: {
+      school_id: string;
+      email: string;
+      role: InvitationRole;
+      invited_by: string;
+      teacher_role?: TeacherSchoolRole | null;
+      student_name?: string | null;
+      student_teacher_id?: string | null;
+      default_location_id?: string | null;
+    } = {
+      school_id: schoolId,
+      email: email.trim(),
+      role,
+      invited_by: user.id,
+    };
+
+    if (role === "teacher") {
+      insertPayload.teacher_role =
+        teacherRole === "owner" ||
+        teacherRole === "head_teacher" ||
+        teacherRole === "teacher"
+          ? teacherRole
+          : "teacher";
+    } else {
+      if (typeof studentTeacherId !== "string" || !studentTeacherId) {
+        return { error: "生徒招待では担当講師を選択してください。" };
+      }
+
+      insertPayload.student_name =
+        typeof studentName === "string" && studentName.trim()
+          ? studentName.trim()
+          : null;
+      insertPayload.student_teacher_id = studentTeacherId;
+      insertPayload.default_location_id =
+        typeof defaultLocationId === "string" && defaultLocationId
+          ? defaultLocationId
+          : null;
+    }
+
+    const { data: invitation, error } = await supabase
+      .from("invitations")
+      .insert(insertPayload)
+      .select("token, role, email, expires_at, student_name")
+      .single();
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    const invitationUrl = buildAppUrl(`/invite/${invitation.token}`);
+    const expiresAt = new Date(invitation.expires_at);
+
+    if (invitation.role === "teacher") {
+      const { subject, html } = teacherInvitationEmail({
+        schoolName: school.name,
+        inviterName: user.display_name,
+        invitationUrl,
+        expiresAt,
+      });
+
+      await sendEmail({
+        to: invitation.email,
+        subject,
+        html,
+      });
+    } else {
+      const { subject, html } = studentInvitationEmail({
+        schoolName: school.name,
+        inviterName: user.display_name,
+        invitationUrl,
+        expiresAt,
+        studentName: invitation.student_name,
+      });
+
+      await sendEmail({
+        to: invitation.email,
+        subject,
+        html,
+      });
+    }
+
+    revalidatePath(`/schools/${schoolId}/invitations`);
+    redirect(`/schools/${schoolId}/invitations?created=${invitation.token}`);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "招待の作成に失敗しました。",
+    };
   }
-
-  const { data: invitation, error } = await supabase
-    .from("invitations")
-    .insert(insertPayload)
-    .select("token, role, email, expires_at, student_name")
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const invitationUrl = buildAppUrl(`/invite/${invitation.token}`);
-  const expiresAt = new Date(invitation.expires_at);
-
-  if (invitation.role === "teacher") {
-    const { subject, html } = teacherInvitationEmail({
-      schoolName: school.name,
-      inviterName: user.display_name,
-      invitationUrl,
-      expiresAt,
-    });
-
-    await sendEmail({
-      to: invitation.email,
-      subject,
-      html,
-    });
-  } else {
-    const { subject, html } = studentInvitationEmail({
-      schoolName: school.name,
-      inviterName: user.display_name,
-      invitationUrl,
-      expiresAt,
-      studentName: invitation.student_name,
-    });
-
-    await sendEmail({
-      to: invitation.email,
-      subject,
-      html,
-    });
-  }
-
-  revalidatePath(`/schools/${schoolId}/invitations`);
-  redirect(`/schools/${schoolId}/invitations?created=${invitation.token}`);
 }
 
 export async function cancelInvitationAction(formData: FormData) {

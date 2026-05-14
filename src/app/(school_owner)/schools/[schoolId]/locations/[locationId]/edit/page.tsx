@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { deleteLocationAction, updateLocationAction } from "@/actions/locations";
+import { deleteLocationAction } from "@/actions/locations";
+import { LocationForm } from "@/components/schools/location-form";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -11,8 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -54,73 +53,35 @@ export default async function EditLocationPage({
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8">
-      <Card className="rounded-lg border-0 bg-white ring-1 ring-neutral-200">
-        <CardHeader>
+      <Card className="rounded-[28px] border border-emerald-100/70 bg-white shadow-[0_20px_60px_rgba(15,31,46,0.06)]">
+        <CardHeader className="space-y-4">
           <Link
             href={`/schools/${schoolId}`}
-            className={buttonVariants({ variant: "ghost", size: "sm" })}
+            className={buttonVariants({ variant: "ghost", size: "sm", className: "w-fit rounded-xl text-slate-600" })}
           >
             教室詳細へ戻る
           </Link>
+          <div className="inline-flex w-fit items-center gap-3 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700">
+            <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-emerald-200 text-slate-900">
+              場
+            </span>
+            Edit Location
+          </div>
           <CardTitle className="text-2xl">場所を編集</CardTitle>
           <CardDescription>名前やタイプ、エリアを調整できます。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <form action={updateLocationAction} className="space-y-6">
-            <input type="hidden" name="school_id" value={schoolId} />
-            <input type="hidden" name="location_id" value={locationId} />
-            <div className="space-y-2">
-              <Label htmlFor="name">場所の名前</Label>
-              <Input id="name" name="name" required defaultValue={location.name} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">タイプ</Label>
-              <select
-                id="type"
-                name="type"
-                className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-neutral-400"
-                defaultValue={location.type}
-              >
-                <option value="room">教室内ルーム</option>
-                <option value="home_visit">出張(生徒宅)</option>
-                <option value="external">その他外部施設</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="area_id">エリア</Label>
-              <select
-                id="area_id"
-                name="area_id"
-                className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none transition focus:border-neutral-400"
-                defaultValue={location.area_id ?? ""}
-              >
-                <option value="">未設定</option>
-                {(areas ?? []).map((area) => (
-                  <option key={area.id} value={area.id}>
-                    {area.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">メモ</Label>
-              <textarea
-                id="notes"
-                name="notes"
-                rows={4}
-                defaultValue={location.notes ?? ""}
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400"
-              />
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className={buttonVariants({ size: "lg" })}
-              >
-                更新
-              </button>
-            </div>
-          </form>
+          <LocationForm
+            schoolId={schoolId}
+            locationId={locationId}
+            areas={areas ?? []}
+            defaults={{
+              name: location.name,
+              type: location.type,
+              areaId: location.area_id,
+              notes: location.notes,
+            }}
+          />
 
           <div className="flex justify-end">
             <ConfirmDeleteDialog
