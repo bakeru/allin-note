@@ -91,28 +91,22 @@ export default async function SchoolDetailPage({
     notFound();
   }
 
-  const [{ count: studentCount }, { count: teacherCount }, { data: students }] =
-    await Promise.all([
-      supabase
-        .from("students")
-        .select("*", { count: "exact", head: true })
-        .eq("school_id", schoolId)
-        .is("deleted_at", null),
-      supabase
-        .from("school_teachers")
-        .select("*", { count: "exact", head: true })
-        .eq("school_id", schoolId),
-      supabase
-        .from("students")
-        .select("user_id")
-        .eq("school_id", schoolId)
-        .is("deleted_at", null),
-    ]);
-
   const [
+    { data: students, error: studentsError },
+    { data: schoolTeachers, error: schoolTeachersError },
     { data: areas, error: areasError },
     { data: locations, error: locationsError },
+    { count: reservationCount, error: reservationCountError },
   ] = await Promise.all([
+    supabase
+      .from("students")
+      .select("user_id")
+      .eq("school_id", schoolId)
+      .is("deleted_at", null),
+    supabase
+      .from("school_teachers")
+      .select("teacher_id")
+      .eq("school_id", schoolId),
     supabase
       .from("areas")
       .select("id, name")
@@ -132,12 +126,19 @@ export default async function SchoolDetailPage({
       .eq("school_id", schoolId)
       .is("deleted_at", null)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("reservations")
+      .select("id", { count: "exact", head: true })
+      .eq("school_id", schoolId),
   ]);
 
-  const { count: reservationCount } = await supabase
-    .from("reservations")
-    .select("*", { count: "exact", head: true })
-    .eq("school_id", schoolId);
+  if (studentsError) {
+    throw new Error(studentsError.message);
+  }
+
+  if (schoolTeachersError) {
+    throw new Error(schoolTeachersError.message);
+  }
 
   if (areasError && !areasError.message.includes("public.areas")) {
     throw new Error(areasError.message);
@@ -147,6 +148,12 @@ export default async function SchoolDetailPage({
     throw new Error(locationsError.message);
   }
 
+  if (reservationCountError) {
+    throw new Error(reservationCountError.message);
+  }
+
+  const studentCount = students?.length ?? 0;
+  const teacherCount = schoolTeachers?.length ?? 0;
   const studentIds = students?.map((student) => student.user_id) ?? [];
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -155,7 +162,7 @@ export default async function SchoolDetailPage({
   const { count: lessonCount } = studentIds.length
     ? await supabase
         .from("lessons")
-        .select("*", { count: "exact", head: true })
+        .select("id", { count: "exact", head: true })
         .in("student_id", studentIds)
         .gte("recorded_at", startOfMonth.toISOString())
     : { count: 0 };

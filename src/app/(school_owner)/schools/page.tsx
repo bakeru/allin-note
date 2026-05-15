@@ -61,27 +61,49 @@ export default async function SchoolsPage() {
     { teacherCount: number; studentCount: number }
   >();
 
-  await Promise.all(
-    schoolIds.map(async (schoolId) => {
-      const [{ count: teacherCount }, { count: studentCount }] =
-        await Promise.all([
+  const [{ data: schoolTeachers, error: schoolTeachersError }, { data: students, error: studentsError }] =
+    schoolIds.length
+      ? await Promise.all([
           supabase
             .from("school_teachers")
-            .select("*", { count: "exact", head: true })
-            .eq("school_id", schoolId),
+            .select("school_id")
+            .in("school_id", schoolIds),
           supabase
             .from("students")
-            .select("*", { count: "exact", head: true })
-            .eq("school_id", schoolId)
+            .select("school_id")
+            .in("school_id", schoolIds)
             .is("deleted_at", null),
-        ]);
+        ])
+      : [{ data: [], error: null }, { data: [], error: null }];
 
-      countsBySchool.set(schoolId, {
-        teacherCount: teacherCount ?? 0,
-        studentCount: studentCount ?? 0,
-      });
-    })
-  );
+  if (schoolTeachersError) {
+    throw new Error(schoolTeachersError.message);
+  }
+
+  if (studentsError) {
+    throw new Error(studentsError.message);
+  }
+
+  typedSchools.forEach((school) => {
+    countsBySchool.set(school.id, {
+      teacherCount: 0,
+      studentCount: 0,
+    });
+  });
+
+  for (const membership of schoolTeachers ?? []) {
+    const current = countsBySchool.get(membership.school_id);
+    if (current) {
+      current.teacherCount += 1;
+    }
+  }
+
+  for (const student of students ?? []) {
+    const current = countsBySchool.get(student.school_id);
+    if (current) {
+      current.studentCount += 1;
+    }
+  }
 
   if (!typedSchools.length) {
     return (

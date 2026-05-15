@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { createServerSupabaseClient } from "@/lib/supabase/auth";
 
 export type CurrentUser = {
@@ -45,7 +47,7 @@ export function getMockUser(): CurrentUser {
   };
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+const getCurrentUserCached = cache(async (): Promise<CurrentUser | null> => {
   if (
     process.env.NEXT_PUBLIC_AUTH_MODE === "mock" ||
     process.env.NEXT_PUBLIC_USE_MOCK_AUTH === "true"
@@ -73,4 +75,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     role: profile.role,
     display_name: profile.display_name,
   };
+});
+
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  return getCurrentUserCached();
 }

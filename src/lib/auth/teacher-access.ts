@@ -1,7 +1,9 @@
+import { cache } from "react";
+
 import { type CurrentUser, getCurrentUser } from "@/lib/auth/get-current-user";
 import { createServiceClient } from "@/lib/supabase/service";
 
-export async function hasTeacherWorkspaceMembership(userId: string) {
+const getTeacherWorkspaceMembership = cache(async (userId: string) => {
   const supabase = createServiceClient();
   const { data, error } = await supabase
     .from("school_teachers")
@@ -15,6 +17,10 @@ export async function hasTeacherWorkspaceMembership(userId: string) {
   }
 
   return Boolean(data);
+});
+
+export async function hasTeacherWorkspaceMembership(userId: string) {
+  return getTeacherWorkspaceMembership(userId);
 }
 
 export async function canAccessTeacherWorkspace(user: CurrentUser | null) {
@@ -33,7 +39,7 @@ export async function canAccessTeacherWorkspace(user: CurrentUser | null) {
   return hasTeacherWorkspaceMembership(user.id);
 }
 
-export async function getTeacherWorkspaceUser() {
+const getTeacherWorkspaceUserCached = cache(async () => {
   const user = await getCurrentUser();
 
   if (await canAccessTeacherWorkspace(user)) {
@@ -41,4 +47,8 @@ export async function getTeacherWorkspaceUser() {
   }
 
   return null;
+});
+
+export async function getTeacherWorkspaceUser() {
+  return getTeacherWorkspaceUserCached();
 }

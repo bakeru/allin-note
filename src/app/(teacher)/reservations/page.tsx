@@ -226,7 +226,6 @@ export default async function ReservationsPage() {
             notes,
             location:locations(name),
             student:students!inner(
-              user_id,
               profile:profiles!user_id(display_name)
             )
           `
@@ -245,7 +244,6 @@ export default async function ReservationsPage() {
             notes,
             location:locations(name),
             student:students!inner(
-              user_id,
               profile:profiles!user_id(display_name)
             )
           `
@@ -258,7 +256,10 @@ export default async function ReservationsPage() {
         .from("lessons")
         .select(
           `
-            *,
+            id,
+            recorded_at,
+            sent_at,
+            teacher_message,
             student:students!inner(
               profile:profiles!user_id(display_name)
             )
@@ -272,7 +273,10 @@ export default async function ReservationsPage() {
         .from("lessons")
         .select(
           `
-            *,
+            id,
+            recorded_at,
+            sent_at,
+            teacher_message,
             student:students!inner(
               profile:profiles!user_id(display_name)
             )
