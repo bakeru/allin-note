@@ -1,7 +1,7 @@
 "use client";
 
 import { signOutAction } from "@/actions/auth";
-import { Button } from "@/components/ui/button";
+import { PendingSubmitButton } from "@/components/shared/pending-submit-button";
 
 export function LogoutForm({
   className,
@@ -10,9 +10,14 @@ export function LogoutForm({
 }) {
   return (
     <form action={signOutAction}>
-      <Button type="submit" variant="ghost" size="sm" className={className}>
+      <PendingSubmitButton
+        variant="ghost"
+        size="sm"
+        className={className}
+        pendingLabel="ログアウト中..."
+      >
         ログアウト
-      </Button>
+      </PendingSubmitButton>
     </form>
   );
 }

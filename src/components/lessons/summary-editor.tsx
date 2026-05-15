@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 import {
   Dialog,
@@ -126,6 +127,7 @@ export function SummaryEditor({
   const [showFirstDialog, setShowFirstDialog] = useState(false);
   const [showSecondDialog, setShowSecondDialog] = useState(false);
   const [showOriginalDialog, setShowOriginalDialog] = useState(false);
+  const [isConfirmSubmitting, setIsConfirmSubmitting] = useState(false);
 
   const changeSummaries = useMemo(() => {
     return SECTION_META.map(({ field, title }) => {
@@ -146,6 +148,7 @@ export function SummaryEditor({
     setDraft(normalizedInitial);
     setIsEditing(false);
     setShowSecondDialog(false);
+    setIsConfirmSubmitting(false);
   };
 
   const resetToInitial = () => {
@@ -352,7 +355,15 @@ export function SummaryEditor({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showSecondDialog} onOpenChange={setShowSecondDialog}>
+      <Dialog
+        open={showSecondDialog}
+        onOpenChange={(open) => {
+          setShowSecondDialog(open);
+          if (!open) {
+            setIsConfirmSubmitting(false);
+          }
+        }}
+      >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>以下の内容で更新しますか?</DialogTitle>
@@ -376,8 +387,23 @@ export function SummaryEditor({
             <Button variant="outline" onClick={() => setShowSecondDialog(false)}>
               キャンセル
             </Button>
-            <Button type="submit" form={formId}>
-              更新する
+            <Button
+              type="button"
+              disabled={isConfirmSubmitting}
+              onClick={() => {
+                setIsConfirmSubmitting(true);
+                const form = document.getElementById(formId) as HTMLFormElement | null;
+                form?.requestSubmit();
+              }}
+            >
+              {isConfirmSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  更新中...
+                </>
+              ) : (
+                "更新する"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

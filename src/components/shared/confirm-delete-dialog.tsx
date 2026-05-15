@@ -1,5 +1,6 @@
 "use client";
 
+import { PendingSubmitButton } from "@/components/shared/pending-submit-button";
 import {
   DialogClose,
   Dialog,
@@ -68,12 +69,12 @@ export function ConfirmDeleteDialog({
             >
               キャンセル
             </DialogClose>
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-rose-600 px-4 text-sm font-medium text-white transition hover:bg-rose-500"
+            <PendingSubmitButton
+              className="h-10 rounded-lg bg-rose-600 px-4 text-sm font-medium text-white transition hover:bg-rose-500"
+              pendingLabel="削除中..."
             >
               {confirmLabel}
-            </button>
+            </PendingSubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>

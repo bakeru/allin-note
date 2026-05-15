@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { acceptInvitationAction } from "@/actions/auth";
+import { PendingSubmitButton } from "@/components/shared/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -101,9 +102,12 @@ export default async function InvitationPage({
               </p>
               <form action={acceptInvitationAction}>
                 <input type="hidden" name="token" value={token} />
-                <button type="submit" className={buttonVariants({ className: "w-full" })}>
+                <PendingSubmitButton
+                  className={buttonVariants({ className: "h-10 w-full" })}
+                  pendingLabel="参加中..."
+                >
                   このアカウントで参加
-                </button>
+                </PendingSubmitButton>
               </form>
             </div>
           ) : (
@@ -121,9 +125,12 @@ export default async function InvitationPage({
                 <Label htmlFor="password">パスワード</Label>
                 <Input id="password" name="password" type="password" required />
               </div>
-              <button type="submit" className={buttonVariants({ className: "w-full" })}>
+              <PendingSubmitButton
+                className={buttonVariants({ className: "h-10 w-full" })}
+                pendingLabel="登録中..."
+              >
                 登録して参加
-              </button>
+              </PendingSubmitButton>
             </form>
           )}
 

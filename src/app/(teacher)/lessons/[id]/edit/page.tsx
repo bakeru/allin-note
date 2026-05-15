@@ -8,7 +8,8 @@ import {
 } from "@/actions/lessons";
 import { SummaryEditor } from "@/components/lessons/summary-editor";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { PendingSubmitButton } from "@/components/shared/pending-submit-button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -345,23 +346,23 @@ export default async function TeacherLessonEditPage({
               placeholder="今日はよく集中して取り組めていました。次回も楽しみにしています。"
             />
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button
-                type="submit"
+              <PendingSubmitButton
                 name="intent"
                 value="save"
                 variant="outline"
+                pendingLabel="保存中..."
                 className="rounded-2xl px-6"
               >
                 一旦保存
-              </Button>
-              <Button
-                type="submit"
+              </PendingSubmitButton>
+              <PendingSubmitButton
                 name="intent"
                 value="send"
+                pendingLabel="送信中..."
                 className="rounded-2xl bg-slate-950 px-6 text-white hover:bg-slate-800"
               >
                 保存して送信
-              </Button>
+              </PendingSubmitButton>
             </div>
           </form>
         </CardContent>

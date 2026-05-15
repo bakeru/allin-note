@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { updateReservationAction } from "@/actions/reservations";
-import { Button } from "@/components/ui/button";
+import { PendingSubmitButton } from "@/components/shared/pending-submit-button";
 import {
   Card,
   CardContent,
@@ -224,9 +224,9 @@ export default async function EditReservationPage({
             </div>
 
             <div className="flex justify-end">
-              <Button type="submit" size="lg">
+              <PendingSubmitButton size="lg" pendingLabel="更新中...">
                 更新する
-              </Button>
+              </PendingSubmitButton>
             </div>
           </form>
 

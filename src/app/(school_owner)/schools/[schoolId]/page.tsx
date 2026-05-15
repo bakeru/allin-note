@@ -16,6 +16,7 @@ import {
   updateLocationSettingsAction,
 } from "@/actions/locations";
 import { DeleteSchoolDialog } from "@/components/schools/delete-school-dialog";
+import { PendingSubmitButton } from "@/components/shared/pending-submit-button";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -470,15 +471,15 @@ export default async function SchoolDetailPage({
                 </div>
               </div>
 
-              <button
-                type="submit"
+              <PendingSubmitButton
                 className={buttonVariants({
                   className:
                     "rounded-2xl bg-[#2bb57f] text-white hover:bg-[#25a774]",
                 })}
+                pendingLabel="更新中..."
               >
                 場所設定を更新
-              </button>
+              </PendingSubmitButton>
             </form>
 
             <div className="h-px bg-slate-100" />
@@ -520,16 +521,16 @@ export default async function SchoolDetailPage({
                   </select>
                 </div>
               </div>
-              <button
-                type="submit"
+              <PendingSubmitButton
                 className={buttonVariants({
                   variant: "secondary",
                   className:
                     "rounded-2xl border border-slate-200 bg-white text-slate-800 hover:bg-slate-50",
                 })}
+                pendingLabel="更新中..."
               >
                 キャンセルポリシーを更新
-              </button>
+              </PendingSubmitButton>
             </form>
           </CardContent>
         </Card>

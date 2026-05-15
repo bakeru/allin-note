@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { deleteSchoolAction } from "@/actions/schools";
+import { PendingSubmitButton } from "@/components/shared/pending-submit-button";
 import {
   DialogClose,
   Dialog,
@@ -93,13 +94,13 @@ export function DeleteSchoolDialog({
             >
               キャンセル
             </DialogClose>
-            <button
-              type="submit"
+            <PendingSubmitButton
               disabled={!canDelete}
-              className="inline-flex h-10 items-center justify-center rounded-lg bg-rose-600 px-4 text-sm font-medium text-white transition hover:bg-rose-500 disabled:pointer-events-none disabled:opacity-50"
+              className="h-10 rounded-lg bg-rose-600 px-4 text-sm font-medium text-white transition hover:bg-rose-500 disabled:pointer-events-none disabled:opacity-50"
+              pendingLabel="削除中..."
             >
               削除する
-            </button>
+            </PendingSubmitButton>
           </DialogFooter>
         </form>
       </DialogContent>
